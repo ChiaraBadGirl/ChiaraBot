@@ -86,7 +86,7 @@ bot.action('back_home', async (ctx) => {
             inline_keyboard: [
                 [ { text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' } ],
                 [ { text: '‼️Regeln', callback_data: 'go_regeln' } ],
-                [ { text: '📲Mein Kanal', url: 'https://t.me/DEIN_KANAL' }, { text: '💬Schreib mir', url: 'https://t.me/DEIN_PROFIL' } ]
+                [ { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
             ]
         }
     });
