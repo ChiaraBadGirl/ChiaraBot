@@ -43,21 +43,28 @@ bot.action('go_info', async (ctx) => {
 
 // Zurück zum Hauptmenü
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlsBot!*
+  await ctx.editMessageText(`👋 *Willkommen bei ChiaraBadGirlsBot!*
 
-Nutze das Menü unten, um alles zu entdecken.', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' }],
-        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
-        [{ text: '📲Mein Kanal', url: 'https://t.me/ChiaraBadGirl' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }]
+Nutze das Menü unten, um alles zu entdecken.`, {
+  parse_mode: 'Markdown',
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: 'ℹ️Info', callback_data: 'go_info' },
+        { text: '🧾Menu', callback_data: 'go_menu' }
+      ],
+      [
+        { text: '‼️Regeln', callback_data: 'go_regeln' }
+      ],
+      [
+        { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
+        { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
       ]
-    }
-  });
+    ]
+  }
 });
 
-// 📢 /broadcast nur für Admin (deine ID hier eintragen)
+// 📢 /broadcast nur für Admin (5647887831)
 bot.command('broadcast', async (ctx) => {
   const fromId = ctx.from.id;
   const adminId = 5647887831;
