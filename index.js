@@ -1,26 +1,26 @@
 import { Telegraf, Markup } from 'telegraf';
-import fs from 'fs';
+import { supabase } from './supabaseClient.js';
 
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
-const USERS_FILE = './users.json';
-
 // User speichern
-function saveUser(id) {
-    let users = [];
-    if (fs.existsSync(USERS_FILE)) {
-        users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    }
-    if (!users.includes(id)) {
-        users.push(id);
-        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+async function saveUser(id) {
+    const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', id)
+        .single();
+
+    if (!data) {
+        await supabase.from('users').insert([{ id }]);
+        console.log('✅ User gespeichert:', id);
     }
 }
 
 // Start
 bot.start(async (ctx) => {
     const id = ctx.chat.id;
-    saveUser(id);
+    await saveUser(id);
     await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
         parse_mode: 'Markdown',
         reply_markup: {
@@ -33,7 +33,6 @@ bot.start(async (ctx) => {
     });
 });
 
-// Info-Menü
 bot.action('go_info', async (ctx) => {
     await ctx.editMessageText('ℹ️ *Info-Menü:*', {
         parse_mode: 'Markdown',
@@ -48,7 +47,6 @@ bot.action('go_info', async (ctx) => {
     });
 });
 
-// Menü
 bot.action('go_menu', async (ctx) => {
     await ctx.editMessageText('🧾 *Menu:*', {
         parse_mode: 'Markdown',
@@ -63,7 +61,6 @@ bot.action('go_menu', async (ctx) => {
     });
 });
 
-// Regeln
 bot.action('go_regeln', async (ctx) => {
     await ctx.editMessageText('‼️ *ALLE REGELN:*', {
         parse_mode: 'Markdown',
@@ -78,7 +75,6 @@ bot.action('go_regeln', async (ctx) => {
     });
 });
 
-// Zurück zum Hauptmenü
 bot.action('back_home', async (ctx) => {
     await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
         parse_mode: 'Markdown',
