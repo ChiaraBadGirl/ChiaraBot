@@ -8,18 +8,23 @@ const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 bot.start(async (ctx) => {
   const id = ctx.chat.id;
   await saveUser(id);
-  await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*
-
-Nutze das Menü unten, um alles zu entdecken.', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' }],
-        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
-        [{ text: '📲Mein Kanal', url: 'https://t.me/ChiaraBadGirl' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }]
+  await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
+  parse_mode: 'Markdown',
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: 'ℹ️Info', callback_data: 'go_info' },
+        { text: '🧾Menu', callback_data: 'go_menu' }
+      ],
+      [
+        { text: '‼️Regeln', callback_data: 'go_regeln' }
+      ],
+      [
+        { text: '📲Mein Kanal', url: 'https://t.me/https://t.me/+XcpXcLb52vo0ZGNi' },
+        { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
       ]
-    }
-  });
+    ]
+  }
 });
 
 // Inline-Tab Beispiel (Info)
