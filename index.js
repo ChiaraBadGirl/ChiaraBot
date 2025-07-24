@@ -1,18 +1,19 @@
 import { Telegraf, Markup } from 'telegraf';
-import Database from 'better-sqlite3';
+import fs from 'fs';
 
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
-const db = new Database('users.db');
-db.prepare(`CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY
-)`).run();
+const USERS_FILE = './users.json';
 
+// User speichern
 function saveUser(id) {
-    const exists = db.prepare('SELECT 1 FROM users WHERE id = ?').get(id);
-    if (!exists) {
-        db.prepare('INSERT INTO users (id) VALUES (?)').run(id);
-        console.log('✅ User gespeichert:', id);
+    let users = [];
+    if (fs.existsSync(USERS_FILE)) {
+        users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    }
+    if (!users.includes(id)) {
+        users.push(id);
+        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
     }
 }
 
@@ -26,7 +27,7 @@ bot.start(async (ctx) => {
             inline_keyboard: [
                 [ { text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' } ],
                 [ { text: '‼️Regeln', callback_data: 'go_regeln' } ],
-                [ { text: '📲Mein Kanal', url: 'https://t.me/ChiaraBadGirl' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
+                [ { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
             ]
         }
     });
@@ -85,35 +86,10 @@ bot.action('back_home', async (ctx) => {
             inline_keyboard: [
                 [ { text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' } ],
                 [ { text: '‼️Regeln', callback_data: 'go_regeln' } ],
-                [ { text: '📲Mein Kanal', url: 'https://t.me/ChiaraBadGirl' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
+                [ { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
             ]
         }
     });
-});
-
-// Broadcast
-const ADMIN_ID = 5647887831;
-
-bot.command('broadcast', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) {
-        return ctx.reply('❌ Du darfst diesen Befehl nicht nutzen.');
-    }
-
-    const message = ctx.message.text.replace('/broadcast', '').trim();
-    if (!message) {
-        return ctx.reply('⚠️ Bitte gib eine Nachricht ein:\n\n/broadcast Dein Text');
-    }
-
-    const rows = db.prepare('SELECT id FROM users').all();
-    for (const row of rows) {
-        try {
-            await ctx.telegram.sendMessage(row.id, `📢 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
-        } catch (err) {
-            console.error(`Fehler beim Senden an ${row.id}:`, err.message);
-        }
-    }
-
-    ctx.reply(`✅ Nachricht an ${rows.length} User gesendet.`);
 });
 
 bot.launch();
