@@ -1,19 +1,18 @@
 import { Telegraf, Markup } from 'telegraf';
-import fs from 'fs';
+import Database from 'better-sqlite3';
 
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
-const USERS_FILE = './users.json';
+const db = new Database('users.db');
+db.prepare(`CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY
+)`).run();
 
-// User speichern
 function saveUser(id) {
-    let users = [];
-    if (fs.existsSync(USERS_FILE)) {
-        users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    }
-    if (!users.includes(id)) {
-        users.push(id);
-        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    const exists = db.prepare('SELECT 1 FROM users WHERE id = ?').get(id);
+    if (!exists) {
+        db.prepare('INSERT INTO users (id) VALUES (?)').run(id);
+        console.log('✅ User gespeichert:', id);
     }
 }
 
@@ -90,6 +89,31 @@ bot.action('back_home', async (ctx) => {
             ]
         }
     });
+});
+
+// Broadcast
+const ADMIN_ID = 5647887831;
+
+bot.command('broadcast', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) {
+        return ctx.reply('❌ Du darfst diesen Befehl nicht nutzen.');
+    }
+
+    const message = ctx.message.text.replace('/broadcast', '').trim();
+    if (!message) {
+        return ctx.reply('⚠️ Bitte gib eine Nachricht ein:\n\n/broadcast Dein Text');
+    }
+
+    const rows = db.prepare('SELECT id FROM users').all();
+    for (const row of rows) {
+        try {
+            await ctx.telegram.sendMessage(row.id, `📢 *Broadcast:*\n${message}`, { parse_mode: 'Markdown' });
+        } catch (err) {
+            console.error(`Fehler beim Senden an ${row.id}:`, err.message);
+        }
+    }
+
+    ctx.reply(`✅ Nachricht an ${rows.length} User gesendet.`);
 });
 
 bot.launch();
