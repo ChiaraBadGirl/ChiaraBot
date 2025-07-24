@@ -2,7 +2,7 @@ import { Telegraf, Markup } from 'telegraf';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
-const bot = new Telegraf('DEIN_BOT_TOKEN_HIER'); // <-- Token hier einsetzen
+const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4'); // <-- Token hier einsetzen
 
 // SQLite DB vorbereiten
 let db;
