@@ -21,6 +21,7 @@ function saveUser(id) {
 bot.start(async (ctx) => {
     const id = ctx.chat.id;
     saveUser(id);
+    console.log("User gespeichert:", id);
     await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
         parse_mode: 'Markdown',
         reply_markup: {
