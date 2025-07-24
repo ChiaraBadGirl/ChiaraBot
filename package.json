@@ -1,9 +1,11 @@
-
 {
   "name": "chiarabot",
   "version": "1.0.0",
-  "type": "module",
   "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "telegraf": "^4.12.2"
   }
