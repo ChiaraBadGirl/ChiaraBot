@@ -91,5 +91,36 @@ bot.action('back_home', async (ctx) => {
         }
     });
 });
+// 📢 Broadcast-Funktion – nur Admin darf senden
+bot.command('broadcast', async (ctx) => {
+    const fromId = ctx.from.id;
+    const adminId = 5647887831; // 👈 Deine Telegram-ID als Admin
+
+    if (fromId !== adminId) {
+        return ctx.reply('🚫 Du darfst diesen Befehl nicht nutzen.');
+    }
+
+    const message = ctx.message.text?.replace('/broadcast', '').trim();
+    if (!message) {
+        return ctx.reply('❗️Bitte gib eine Nachricht an:\n/broadcast Dein Text');
+    }
+
+    let users = [];
+    if (fs.existsSync(USERS_FILE)) {
+        users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    }
+
+    let sent = 0;
+    for (const id of users) {
+        try {
+            await bot.telegram.sendMessage(id, message);
+            sent++;
+        } catch (err) {
+            console.error(`Fehler bei ${id}:`, err.message);
+        }
+    }
+
+    ctx.reply(`✅ Nachricht an ${sent} Nutzer gesendet.`);
+});
 
 bot.launch();
