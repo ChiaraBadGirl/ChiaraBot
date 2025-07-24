@@ -45,6 +45,23 @@ await saveUser(user);
     });
 });
 
+bot.command('admin', async (ctx) => {
+  if (ctx.from.id !== 5647887831) {
+    return ctx.reply('❌ Nur der Admin darf diesen Befehl verwenden.');
+  }
+
+  await ctx.reply('🛠️ *Admin-Menü*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
+        [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
+        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
+      ]
+    }
+  });
+});
+
 bot.action('go_info', async (ctx) => {
     await ctx.editMessageText('ℹ️ *Info-Menü:*', {
         parse_mode: 'Markdown',
@@ -98,6 +115,57 @@ bot.action('back_home', async (ctx) => {
             ]
         }
     });
+});
+
+bot.action('admin_stats', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+
+  const { data, error } = await supabase.from('users').select('id');
+
+  if (error) {
+    console.error(error);
+    return ctx.reply('Fehler beim Abrufen der Statistik.');
+  }
+
+  await ctx.editMessageText(`📊 *Gespeicherte User: ${data.length}*`, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
+      ]
+    }
+  });
+});
+
+bot.action('admin_broadcast_info', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+
+  await ctx.editMessageText(
+    '📢 *Broadcast starten:*\n\nNutze den Befehl:\n`/broadcast Dein Text`\num allen gespeicherten Usern eine Nachricht zu senden.',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
+        ]
+      ]
+    }
+  );
+});
+
+bot.action('admin_menu', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+
+  await ctx.editMessageText('🛠️ *Admin-Menü*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
+        [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
+        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
+      ]
+    }
+  });
 });
 
 bot.command('broadcast', async (ctx) => {
