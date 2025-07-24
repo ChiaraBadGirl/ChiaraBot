@@ -1,9 +1,13 @@
 {
-  "name": "chiara-bot",
+  "name": "chiarabot",
   "version": "1.0.0",
-  "main": "index.js",
   "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "telegraf": "^4.12.2"
+    "telegraf": "^4.12.2",
+    "fs-extra": "^11.1.1"
   }
 }
