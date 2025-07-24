@@ -1,7 +1,7 @@
 import { Telegraf, Markup } from 'telegraf';
 import fs from 'fs';
 
-const bot = new Telegraf('YOUR_BOT_TOKEN_HERE');
+const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
 const USERS_FILE = './users.json';
 
@@ -27,7 +27,7 @@ bot.start(async (ctx) => {
             inline_keyboard: [
                 [ { text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' } ],
                 [ { text: '‼️Regeln', callback_data: 'go_regeln' } ],
-                [ { text: '📲Mein Kanal', url: 'https://t.me/DEIN_KANAL' }, { text: '💬Schreib mir', url: 'https://t.me/DEIN_PROFIL' } ]
+                [ { text: '📲Mein Kanal', url: 'https://t.me/ChiaraBadGirl' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
             ]
         }
     });
@@ -86,7 +86,7 @@ bot.action('back_home', async (ctx) => {
             inline_keyboard: [
                 [ { text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' } ],
                 [ { text: '‼️Regeln', callback_data: 'go_regeln' } ],
-                [ { text: '📲Mein Kanal', url: 'https://t.me/DEIN_KANAL' }, { text: '💬Schreib mir', url: 'https://t.me/DEIN_PROFIL' } ]
+                [ { text: '📲Mein Kanal', url: 'https://t.me/ChiaraBadGirl' }, { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' } ]
             ]
         }
     });
