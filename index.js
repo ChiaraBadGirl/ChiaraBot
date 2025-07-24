@@ -90,4 +90,37 @@ bot.action('back_home', async (ctx) => {
     });
 });
 
+bot.command('broadcast', async (ctx) => {
+    const userId = ctx.from.id;
+    const message = ctx.message.text.split(' ').slice(1).join(' ');
+
+    if (userId !== 5647887831) {
+        return ctx.reply('❌ Du darfst diesen Befehl nicht verwenden.');
+    }
+
+    if (!message) {
+        return ctx.reply('❗ Bitte gib einen Nachrichtentext an: `/broadcast Dein Text`', { parse_mode: 'Markdown' });
+    }
+
+    const { data, error } = await supabase.from('users').select('id');
+
+    if (error) {
+        console.error('❌ Fehler beim Abrufen der User:', error);
+        return ctx.reply('Fehler beim Abrufen der Benutzer.');
+    }
+
+    let count = 0;
+
+    for (const user of data) {
+        try {
+            await ctx.telegram.sendMessage(user.id, message);
+            count++;
+        } catch (err) {
+            console.log(`⚠️ Konnte Nachricht nicht an ${user.id} senden`);
+        }
+    }
+
+    ctx.reply(`📨 Nachricht wurde an ${count} Nutzer gesendet.`);
+});
+
 bot.launch();
