@@ -23,18 +23,20 @@ async function saveUser(id) {
   }
 }
 
-// /start Kommando
+// Start
 bot.start(async (ctx) => {
-  const id = ctx.chat.id;
-  await saveUser(id);
-  await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
-    parse_mode: 'Markdown',
-    reply_markup: Markup.inlineKeyboard([
-      [Markup.button.callback('ℹ️Info', 'go_info'), Markup.button.callback('🧾Menu', 'go_menu')],
-      [Markup.button.callback('‼️Regeln', 'go_regeln')],
-      [Markup.button.url('📲Mein Kanal', 'https://t.me/ChiaraBadGirl'), Markup.button.url('💬Schreib mir', 'https://t.me/ChiaraBadGirl')]
-    ])
-  });
+    const id = ctx.chat.id;
+    saveUser(id);
+    await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [
+                [ { text: 'ℹ️Info', callback_data: 'go_info' }, { text: '🧾Menu', callback_data: 'go_menu' } ],
+                [ { text: '‼️Regeln', callback_data: 'go_regeln' } ],
+                [ { text: '📲Mein Kanal', url: 'https://t.me/DEIN_KANAL' }, { text: '💬Schreib mir', url: 'https://t.me/DEIN_PROFIL' } ]
+            ]
+        }
+    });
 });
 
 // Hauptmenü zurück
