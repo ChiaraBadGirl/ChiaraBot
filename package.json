@@ -1,0 +1,9 @@
+{
+  "name": "chiara-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "telegraf": "^4.12.2"
+  }
+}
