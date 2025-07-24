@@ -1,6 +1,8 @@
 import { Telegraf, Markup } from 'telegraf';
 import { supabase } from './supabaseClient.js';
 
+// Node 20 aktiviert
+
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
 // User speichern
