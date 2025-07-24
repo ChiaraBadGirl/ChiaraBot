@@ -3,7 +3,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
 // Bot-Token
-const bot = new Telegraf('DEIN_BOT_TOKEN');
+const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
 // SQLite-Datenbank öffnen
 const dbPromise = open({
