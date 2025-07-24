@@ -6,23 +6,33 @@ import { supabase } from './supabaseClient.js';
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
 // User speichern
-async function saveUser(id) {
-    const { data, error } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', id)
-        .single();
+async function saveUser(user) {
+  const { id, username, first_name, last_name, language_code } = user;
 
-    if (!data) {
-        await supabase.from('users').insert([{ id }]);
-        console.log('✅ User gespeichert:', id);
-    }
+  const { data } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', id)
+    .single();
+
+  if (!data) {
+    await supabase.from('users').insert([
+      { id, username, first_name, last_name, language_code }
+    ]);
+    console.log('✅ User gespeichert:', id);
+  }
 }
 
 // Start
 bot.start(async (ctx) => {
-    const id = ctx.chat.id;
-    await saveUser(id);
+    const user = {
+  id: ctx.from.id,
+  username: ctx.from.username || null,
+  first_name: ctx.from.first_name || null,
+  last_name: ctx.from.last_name || null,
+  language_code: ctx.from.language_code || null
+};
+await saveUser(user);
     await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
         parse_mode: 'Markdown',
         reply_markup: {
