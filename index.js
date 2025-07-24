@@ -135,7 +135,7 @@ bot.action('admin_stats', async (ctx) => {
       ]
     }
   });
-});
+}); // 
 
 bot.action('admin_broadcast_info', async (ctx) => {
   if (ctx.from.id !== 5647887831) return;
