@@ -1,27 +1,48 @@
 import { Telegraf, Markup } from 'telegraf';
 import { supabase } from './supabaseClient.js';
+import express from 'express';
 
+// =======================
+// 🔑 Konfiguration
+// =======================
+const DOMAIN = "https://DEINE-DOMAIN.up.railway.app"; // <- Hier deine Railway Domain eintragen
+const PORT = process.env.PORT || 8080;
+
+// =======================
+// 🤖 Bot Setup
+// =======================
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
-// User speichern
+// 🔍 Supabase Test
+(async () => {
+  try {
+    const { data, error } = await supabase.from('users').select('id');
+    if (error) {
+      console.error("❌ Fehler bei Supabase Verbindung:", error.message);
+    } else {
+      console.log(`✅ Supabase Verbindung OK – aktuell ${data.length} User gespeichert.`);
+    }
+  } catch (err) {
+    console.error("❌ Unerwarteter Fehler bei Supabase Test:", err);
+  }
+})();
+
+// =======================
+// 👤 User speichern
+// =======================
 async function saveUser(user) {
   const { id, username, first_name, last_name, language_code } = user;
-
-  const { data } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', id)
-    .single();
+  const { data } = await supabase.from('users').select('id').eq('id', id).single();
 
   if (!data) {
-    await supabase.from('users').insert([
-      { id, username, first_name, last_name, language_code }
-    ]);
+    await supabase.from('users').insert([{ id, username, first_name, last_name, language_code }]);
     console.log('✅ User gespeichert:', id);
   }
 }
 
-// Start
+// =======================
+// 📌 Start Command
+// =======================
 bot.start(async (ctx) => {
   const user = {
     id: ctx.from.id,
@@ -50,11 +71,11 @@ bot.start(async (ctx) => {
   });
 });
 
-// Admin-Befehl
+// =======================
+// 🛠 Admin-Menü
+// =======================
 bot.command('admin', async (ctx) => {
-  if (ctx.from.id !== 5647887831) {
-    return ctx.reply('❌ Nur der Admin darf diesen Befehl verwenden.');
-  }
+  if (ctx.from.id !== 5647887831) return ctx.reply('❌ Nur der Admin darf diesen Befehl verwenden.');
 
   await ctx.reply('🛠️ *Admin-Menü*', {
     parse_mode: 'Markdown',
@@ -68,7 +89,58 @@ bot.command('admin', async (ctx) => {
   });
 });
 
-// Info-Menü
+// =======================
+// 📊 Admin Statistik
+// =======================
+bot.action('admin_stats', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+  const { data, error } = await supabase.from('users').select('id');
+
+  if (error) return ctx.reply('Fehler beim Abrufen der Statistik.');
+
+  await ctx.editMessageText(`📊 *Gespeicherte User: ${data.length}*`, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'admin_menu' }]]
+    }
+  });
+});
+
+// =======================
+// 📢 Broadcast Info
+// =======================
+bot.action('admin_broadcast_info', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+
+  await ctx.editMessageText(
+    '📢 *Broadcast starten:*\n\nNutze den Befehl:\n`/broadcast Dein Text`',
+    { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'admin_menu' }]] } }
+  );
+});
+
+// =======================
+// 📨 Broadcast Befehl
+// =======================
+bot.command('broadcast', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return ctx.reply('❌ Keine Berechtigung.');
+
+  const message = ctx.message.text.split(' ').slice(1).join(' ');
+  if (!message) return ctx.reply('❗ Bitte Text angeben: `/broadcast Dein Text`', { parse_mode: 'Markdown' });
+
+  const { data, error } = await supabase.from('users').select('id');
+  if (error) return ctx.reply('Fehler beim Abrufen der Benutzer.');
+
+  let count = 0;
+  for (const user of data) {
+    try { await ctx.telegram.sendMessage(user.id, message); count++; }
+    catch { console.log(`⚠️ Konnte Nachricht nicht an ${user.id} senden`); }
+  }
+  ctx.reply(`📨 Nachricht an ${count} Nutzer gesendet.`);
+});
+
+// =======================
+// 🔄 Inline Menüs (Info, Menü, Regeln, Home)
+// =======================
 bot.action('go_info', async (ctx) => {
   await ctx.editMessageText('ℹ️ *Info-Menü:*', {
     parse_mode: 'Markdown',
@@ -83,7 +155,6 @@ bot.action('go_info', async (ctx) => {
   });
 });
 
-// Menü
 bot.action('go_menu', async (ctx) => {
   await ctx.editMessageText('🧾 *Menu:*', {
     parse_mode: 'Markdown',
@@ -98,7 +169,6 @@ bot.action('go_menu', async (ctx) => {
   });
 });
 
-// Regeln
 bot.action('go_regeln', async (ctx) => {
   await ctx.editMessageText('‼️ *ALLE REGELN:*', {
     parse_mode: 'Markdown',
@@ -113,9 +183,8 @@ bot.action('go_regeln', async (ctx) => {
   });
 });
 
-// Back to home
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
+  await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlsBot!*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
@@ -133,94 +202,15 @@ bot.action('back_home', async (ctx) => {
   });
 });
 
-// Admin: Statistik
-bot.action('admin_stats', async (ctx) => {
-  if (ctx.from.id !== 5647887831) return;
+// =======================
+// 🌐 Webhook Setup
+// =======================
+bot.telegram.setWebhook(`${DOMAIN}/bot${bot.token}`);
 
-  const { data, error } = await supabase.from('users').select('id');
+const app = express();
+app.use(express.json());
+app.use(bot.webhookCallback(`/bot${bot.token}`));
 
-  if (error) {
-    console.error(error);
-    return ctx.reply('Fehler beim Abrufen der Statistik.');
-  }
+app.get("/", (req, res) => res.send("✅ Bot läuft über Webhook"));
 
-  await ctx.editMessageText(`📊 *Gespeicherte User: ${data.length}*`, {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
-      ]
-    }
-  });
-}); // ✅ ← Diese Klammer hatte vorher gefehlt!
-
-// Admin: Broadcast-Info anzeigen
-bot.action('admin_broadcast_info', async (ctx) => {
-  if (ctx.from.id !== 5647887831) return;
-
-  await ctx.editMessageText(
-    '📢 *Broadcast starten:*\n\nNutze den Befehl:\n`/broadcast Dein Text`\num allen gespeicherten Usern eine Nachricht zu senden.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
-        ]
-      }
-    }
-  );
-});
-
-// Admin: Menü zurück
-bot.action('admin_menu', async (ctx) => {
-  if (ctx.from.id !== 5647887831) return;
-
-  await ctx.editMessageText('🛠️ *Admin-Menü*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
-        [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
-    }
-  });
-});
-
-// Broadcast-Befehl
-bot.command('broadcast', async (ctx) => {
-  const userId = ctx.from.id;
-  const message = ctx.message.text.split(' ').slice(1).join(' ');
-
-  if (userId !== 5647887831) {
-    return ctx.reply('❌ Du darfst diesen Befehl nicht verwenden.');
-  }
-
-  if (!message) {
-    return ctx.reply('❗ Bitte gib einen Nachrichtentext an: `/broadcast Dein Text`', {
-      parse_mode: 'Markdown'
-    });
-  }
-
-  const { data, error } = await supabase.from('users').select('id');
-
-  if (error) {
-    console.error('❌ Fehler beim Abrufen der User:', error);
-    return ctx.reply('Fehler beim Abrufen der Benutzer.');
-  }
-
-  let count = 0;
-
-  for (const user of data) {
-    try {
-      await ctx.telegram.sendMessage(user.id, message);
-      count++;
-    } catch (err) {
-      console.log(`⚠️ Konnte Nachricht nicht an ${user.id} senden`);
-    }
-  }
-
-  ctx.reply(`📨 Nachricht wurde an ${count} Nutzer gesendet.`);
-});
-
-bot.launch();
+app.listen(PORT, () => console.log(`🚀 Bot läuft auf Port ${PORT} via Webhook`));
