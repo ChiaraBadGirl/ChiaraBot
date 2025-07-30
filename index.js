@@ -5,7 +5,7 @@ import express from 'express';
 // =======================
 // 🔑 Konfiguration
 // =======================
-const DOMAIN = "https://DEINE-DOMAIN.up.railway.app"; // <- Hier deine Railway Domain eintragen
+const DOMAIN = "chiarabot-production.up.railway.app"; // <- Hier deine Railway Domain eintragen
 const PORT = process.env.PORT || 8080;
 
 // =======================
