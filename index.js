@@ -116,6 +116,9 @@ bot.start(async (ctx) => {
         [
           { text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
           { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
+        ],
+        [{ text: "👤 Mein Bereich", callback_data: "mein_bereich" }],
+        [
         ]
       ]
     }
@@ -742,21 +745,58 @@ bot.action('go_regeln', async (ctx) => {
   });
 });
 
+// 📂 Mein Bereich
+bot.action('mein_bereich', async (ctx) => {
+  const userId = ctx.from.id;
+
+  // Userdaten aus Supabase abrufen
+  const { data, error } = await supabase
+    .from('users')
+    .select('status, status_start, status_end, punkte, produkte')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) {
+    console.error('Fehler beim Abrufen der Userdaten:', error);
+    return ctx.editMessageText('⚠️ Fehler: Konnte deine Daten nicht abrufen.');
+  }
+
+  // Werte auslesen & Fallbacks setzen
+  const status = data.status || '—';
+  const start = data.status_start || '—';
+  const end = data.status_end || '—';
+  const punkte = data.punkte || 0;
+  const produkte = data.produkte?.join(', ') || 'Keine Käufe';
+
+  // Nachricht an User
+  await ctx.editMessageText(
+    `📂 *Dein Bereich*\n\n` +
+    `📌 *Status:* ${status}\n` +
+    `🗓 *Start:* ${start}\n` +
+    `⏳ *Ende:* ${end}\n` +
+    `⭐ *Punkte:* ${punkte}\n` +
+    `🛒 *Gekaufte Produkte:* ${produkte}`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Zurück', callback_data: 'go_menu' }]
+        ]
+      }
+    }
+  );
+});
+
 // Back to home
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
+  await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [
-          { text: 'ℹ️Info', callback_data: 'go_info' },
-          { text: '🧾Menu', callback_data: 'go_menu' }
-        ],
+        [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '📄 Menu', callback_data: 'go_menu' }],
         [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
-        [
-          { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
-          { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
-        ]
+        [{ text: '📲 Mein Kanal', url: 'https://t.me/xXcpXLcD5Zvo2GNI' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
+        [{ text: '📂 Mein Bereich', callback_data: 'mein_bereich' }]
       ]
     }
   });
