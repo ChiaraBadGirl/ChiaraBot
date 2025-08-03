@@ -543,61 +543,103 @@ bot.action('pay_vip', async (ctx) => {
 
 // 📀 Custom Videos
 bot.action('preise_custom', async (ctx) => {
-  await ctx.editMessageText('📀 *Custom Videos*', {
+  await ctx.editMessageText('📀 *Custom Videos*\n\nWähle deine Länge:', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'ℹ Info', callback_data: 'info_custom' }],
-        [{ text: '💰 Preis', callback_data: 'preis_custom' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom' }],
+        [{ text: '🎥 3 Minuten', callback_data: 'custom_3min' }],
+        [{ text: '🎥 5 Minuten', callback_data: 'custom_5min' }],
         [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
       ]
     }
   });
 });
 
-// Jetzt bezahlen (Custom Videos)
-bot.action('pay_custom', async (ctx) => {
-  await ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', {
+// 3 Minuten Video
+bot.action('custom_3min', async (ctx) => {
+  await ctx.editMessageText('🎥 *Custom Video – 3 Minuten*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
+        [{ text: 'ℹ️ Info', callback_data: 'info_custom_3min' }],
+        [{ text: '💰 Preis', callback_data: 'preis_custom_3min' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom_3min' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
   });
 });
+bot.action('info_custom_3min', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 3 Minuten individuell für dich aufgenommen.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_3min' }]] } }));
+bot.action('preis_custom_3min', async (ctx) => ctx.editMessageText('💰 *Preis*: 100€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_3min' }]] } }));
+bot.action('pay_custom_3min', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'custom_3min' }]] } }));
 
-// 🧦 Dirty Panties & Socks
-bot.action('preise_panties', async (ctx) => {
-  await ctx.editMessageText('🧦 *Dirty Panties & Socks*', {
+// 5 Minuten Video
+bot.action('custom_5min', async (ctx) => {
+  await ctx.editMessageText('🎥 *Custom Video – 5 Minuten*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'ℹ Info', callback_data: 'info_panties' }],
-        [{ text: '💰 Preis', callback_data: 'preis_panties' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_panties' }],
+        [{ text: 'ℹ️ Info', callback_data: 'info_custom_5min' }],
+        [{ text: '💰 Preis', callback_data: 'preis_custom_5min' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom_5min' }],
+        [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
+      ]
+    }
+  });
+});
+bot.action('info_custom_5min', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 5 Minuten individuell für dich aufgenommen.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_5min' }]] } }));
+bot.action('preis_custom_5min', async (ctx) => ctx.editMessageText('💰 *Preis*: 140€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_5min' }]] } }));
+bot.action('pay_custom_5min', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'custom_5min' }]] } }));
+
+// 🧦 Dirty Panties & Socks
+bot.action('preise_panties', async (ctx) => {
+  await ctx.editMessageText('🧦 *Dirty Panties & Socks*\n\nWähle dein Produkt:', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '👙 Panty', callback_data: 'panty' }],
+        [{ text: '🧦 Socks', callback_data: 'socks' }],
         [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
       ]
     }
   });
 });
 
-// Jetzt bezahlen (Dirty Panties & Socks)
-bot.action('pay_panties', async (ctx) => {
-  await ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', {
+// 👙 Panty
+bot.action('panty', async (ctx) => {
+  await ctx.editMessageText('👙 *Panty* – 40€ (+20€/extra Tag getragen)', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
+        [{ text: 'ℹ️ Info', callback_data: 'info_panty' }],
+        [{ text: '💰 Preis', callback_data: 'preis_panty' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_panty' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
   });
 });
+bot.action('info_panty', async (ctx) => ctx.editMessageText('ℹ️ *Info*: Original getragen, diskret verpackt versendet.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'panty' }]] } }));
+bot.action('preis_panty', async (ctx) => ctx.editMessageText('💰 *Preis*: 40€ (+20€/extra Tag getragen)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'panty' }]] } }));
+bot.action('pay_panty', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'panty' }]] } }));
+
+// 🧦 Socks
+bot.action('socks', async (ctx) => {
+  await ctx.editMessageText('🧦 *Socks* – 30€ (+20€/extra Tag getragen)', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ️ Info', callback_data: 'info_socks' }],
+        [{ text: '💰 Preis', callback_data: 'preis_socks' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_socks' }],
+        [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
+      ]
+    }
+  });
+});
+bot.action('info_socks', async (ctx) => ctx.editMessageText('ℹ️ *Info*: Getragene Socken, diskret verpackt.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'socks' }]] } }));
+bot.action('preis_socks', async (ctx) => ctx.editMessageText('💰 *Preis*: 30€ (+20€/extra Tag getragen)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'socks' }]] } }));
+bot.action('pay_socks', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'socks' }]] } }));
 
 // Regeln
 bot.action('go_regeln', async (ctx) => {
