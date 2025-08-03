@@ -16,7 +16,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !WEBHOOK_SECRET) {
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   global: {
     headers: {
-      'x-bot-secret': WEBHOOK_SECRET
+      'x-bot-secret': WEBHOOK_SECRET // 👉 hier wird die Variable verwendet
     }
   }
 });
