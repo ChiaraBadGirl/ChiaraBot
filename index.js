@@ -121,16 +121,17 @@ bot.action('go_info', async (ctx) => {
   });
 });
 
+// Start Naricht
 bot.action('info_wer', async (ctx) => {
   await ctx.editMessageText(
     '🔥 *ChiaraBadGirl – About Me* 🔥\n\n' +
-    'Hey Baby 😈, ich bin *Chiara*, 26 Jahre alt – mit Wurzeln in *Luxemburg* & *Germany* 🇱🇺🇩🇪.\n\n' +
-    '💦 *Squirt Queen* – ich weiß, wie man dich nass macht 😏\n' +
-    '😈 *BadBiitch* – wild, frech und immer ein bisschen gefährlich\n' +
-    '🖤 *Tätowiert & einzigartig* – Kunst auf meiner Haut und in meinem Leben\n\n' +
-    '💌 *Hier bekommst du*: Exklusive Pics, heiße Videos, private Chats & besondere Sessions.\n' +
-    '💎 Dein VIP-Zugang zu einer Welt ohne Grenzen.\n\n' +
-    '🔥 *ChiaraBadGirl – Dein geheimes Vergnügen wartet!* 🔥',
+    'Hey Baby 😈, ich bin *Chiara*, 26 Jahre jung – mit Wurzeln in 🇱🇺 *Luxemburg* & 🇩🇪 *Germany*.\n\n' +
+    '💦 *Squirt Queen* – ich weiß genau, wie man dich nass macht 😏\n' +
+    '🔥 *BadBiitch* – wild, frech und immer ein bisschen gefährlich\n' +
+    '🎨 *Tätowiert & einzigartig* – Kunst auf meiner Haut und in meinem Leben\n\n' +
+    '📸 *Hier bekommst du*: Exklusive Pics, heiße Videos, private Chats & besondere Sessions\n' +
+    '💎 Dein VIP-Zugang zu einer Welt ohne Grenzen...\n\n' +
+    '⚡ *ChiaraBadGirl – Dein geheimes Vergnügen wartet!* ⚡',
     {
       parse_mode: 'Markdown',
       reply_markup: {
@@ -140,6 +141,56 @@ bot.action('info_wer', async (ctx) => {
       }
     }
   );
+});
+
+// 📌 Social Media Menü
+bot.action('info_social', async (ctx) => {
+  await ctx.editMessageText('🌐 *Social Media & Offizielle Seiten*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🌍 Offizielle Website', url: 'https://www.chiarabadgirl.eu' }],
+        [{ text: '📸 Instagram', callback_data: 'instagram_menu' }],
+        [{ text: '🐦 Twitter', url: 'https://www.x.com/chiarabadgirl' }],
+        [{ text: '🎵 TikTok', url: 'https://www.tiktok.com/@biancanerini_offiziell' }],
+        [{ text: '📘 Facebook', url: 'https://www.facebook.com/share/1QLd19Djha/?mibextid=wwXIfr' }],
+        [{ text: '🔞 18+ Accounts', callback_data: 'info_links' }],
+        [{ text: '🔙 Zurück', callback_data: 'go_info' }]
+      ]
+    }
+  });
+});
+
+// 📸 Instagram Menü
+bot.action('instagram_menu', async (ctx) => {
+  await ctx.editMessageText('📸 *Instagram Accounts*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⭐ Hauptaccount', url: 'https://www.instagram.com/realchiaraoffiziell?igsh=Zmtuc3RwYWg4bzFi&utm_source=qr' }],
+        [{ text: '🛟 Backup Account', url: 'https://www.instagram.com/chiarabadgiirl_offiziell?igsh=MW1tcmw5dWU1c2k0dQ%3D%3D&utm_source=qr' }],
+        [{ text: '🔙 Zurück', callback_data: 'info_social' }]
+      ]
+    }
+  });
+});
+
+// 🔞 18+ Links Menü
+bot.action('info_links', async (ctx) => {
+  await ctx.editMessageText('😈 *18+ Accounts & Premium Inhalte*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔥 OnlyFans Sub', url: 'https://www.onlyfans.com/chiarabadg' }],
+        [{ text: '👀 OnlyFans PPV', url: 'https://www.onlyfans.com/chiarabadgirl' }],
+        [{ text: '🥰 MYM', url: 'https://www.mym.fans/chiarabadgirl' }],
+        [{ text: '‼️ 4Based', url: 'https://4based.com/profile/chiarabadgirl' }],
+        [{ text: '🍀 Fanseven', url: 'https://www.fanseven.com/chiarabadgirl' }],
+        [{ text: '🫶🏻 Maloum', url: 'https://app.maloum.com/creator/chiarabadgirl' }],
+        [{ text: '🔙 Zurück', callback_data: 'info_social' }]
+      ]
+    }
+  });
 });
 
 // Menü
