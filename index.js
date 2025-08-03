@@ -7,9 +7,6 @@ const BOT_TOKEN = process.env.BOT_TOKEN || "DEIN_BOT_TOKEN";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
 
-// Bot erstellen
-const bot = new Telegraf(BOT_TOKEN);
-
 // Express App für Webhook
 const app = express();
 app.use(bot.webhookCallback(`/webhook/${WEBHOOK_SECRET}`));
