@@ -230,7 +230,7 @@ bot.action('preise_daddy', async (ctx) => {
 });
 
 // ❤️ Girlfriend / Domina Pass
-bot.action('preis_girlfriend', async (ctx) => {
+bot.action('preise_girlfriend', async (ctx) => {
   await ctx.editMessageText(
     '❤️ *Girlfriend & Domina Pass*\n\n' +
     '💖 *Girlfriend Pass* – Daily Chats (30 Min) + Full Access + Private Nummer – 150€/Woche\n' +
