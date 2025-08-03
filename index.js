@@ -100,6 +100,7 @@ bot.command('admin', async (ctx) => {
       inline_keyboard: [
         [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
         [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
+        [{ text: '🧪 Test Status', callback_data: 'admin_test_status' }],
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
@@ -742,10 +743,35 @@ bot.action('admin_menu', async (ctx) => {
       inline_keyboard: [
         [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
         [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
+        [{ text: '🧪 Test Status', callback_data: 'admin_test_status' }], // 🆕 Button
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
   });
+});
+
+// 🆕 Admin: Test-Status setzen
+bot.action('admin_test_status', async (ctx) => {
+  const userId = ctx.from.id;
+  const today = new Date();
+  const endDate = new Date();
+  endDate.setDate(today.getDate() + 7); // Beispiel: 1 Woche gültig
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      status: 'GF',
+      status_start: today.toISOString().split('T')[0],
+      status_end: endDate.toISOString().split('T')[0]
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error(error);
+    return ctx.reply('❌ Fehler beim Setzen des Status');
+  }
+
+  await ctx.reply(`✅ Teststatus gesetzt: GF gültig bis ${endDate.toLocaleDateString()}`);
 });
 
 // Broadcast-Befehl
