@@ -100,8 +100,6 @@ bot.command('admin', async (ctx) => {
       inline_keyboard: [
         [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
         [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
-        [{ text: '🧪 Test Status', callback_data: 'test_status' }],
-        [{ text: '🔍 Check IDs', callback_data: 'admin_check_ids' }],
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
@@ -744,58 +742,10 @@ bot.action('admin_menu', async (ctx) => {
       inline_keyboard: [
         [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
         [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
-        [{ text: '🧪 Test Status', callback_data: 'admin_test_status' }], // 🆕 Button
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
   });
-});
-
-// 🔍 Test Status im Admin Menü
-bot.action('admin_test_status', async (ctx) => {
-  if (ctx.from.id !== 5647887831) return;
-
-  const testStatus = 'GF';
-  const now = new Date();
-  const endDate = new Date();
-  endDate.setDate(now.getDate() + 7); // +7 Tage
-
-  const { data, error } = await supabase
-    .from('users')
-    .update({
-      status: testStatus,
-      status_start: now.toISOString(),
-      status_end: endDate.toISOString()
-    })
-    .eq('id', ctx.from.id) // WICHTIG: hier sicherstellen, dass ID stimmt
-    .select();
-
-  if (error) {
-    console.error('❌ Fehler beim Update:', error.message);
-    await ctx.reply(`❌ Fehler beim Setzen des Status: ${error.message}`);
-  } else {
-    console.log('✅ Update erfolgreich:', data);
-    await ctx.reply(`✅ Teststatus gesetzt: ${testStatus} gültig bis ${endDate.toLocaleDateString()}`);
-  }
-});
-
-// Admin: Check IDs
-bot.action('admin_check_ids', async (ctx) => {
-  if (ctx.from.id !== 5647887831) return;
-
-  const { data, error } = await supabase.from('users').select('id, username, status');
-
-  if (error) {
-    console.error(error);
-    return ctx.reply('❌ Fehler beim Abrufen der IDs.');
-  }
-
-  let msg = '📋 *Gespeicherte User:*\n\n';
-  data.forEach(user => {
-    msg += `🆔 ${user.id} (${user.username || 'Kein Username'}) – Status: ${user.status || '—'}\n`;
-  });
-
-  await ctx.reply(msg, { parse_mode: 'Markdown' });
 });
 
 // Broadcast-Befehl
