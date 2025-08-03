@@ -1,24 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Variablen aus Railway lesen
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+const SUPABASE_URL = 'https://dailaqknciqwimozyvkk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhaWxhcWtuY2lxd2ltb3p5dmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzODM0NjcsImV4cCI6MjA2ODk1OTQ2N30.8Z4MhwKgUJ3mlnPf_kw8fVnfCRPVBRBSVWOnXK3AZsM';
 
-// Testausgabe im Log
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !WEBHOOK_SECRET) {
-  console.error("❌ Supabase Keys oder Secret fehlen! Bitte in Railway Variables setzen.");
-} else {
-  console.log("✅ Supabase Keys & Secret erfolgreich geladen!");
-}
-
-// Supabase Client mit Secret-Header erstellen
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  global: {
-    headers: {
-      apikey: SUPABASE_ANON_KEY, // Standard-Key
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`, // Auth für API
-      'x-bot-secret': WEBHOOK_SECRET // 👈 Hier der wichtige Header
-    }
-  }
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
