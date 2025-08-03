@@ -170,6 +170,7 @@ bot.action('preise_fullaccess', async (ctx) => {
   });
 });
 
+// 🔥 Full Access Pass 1 Monat
 bot.action('fullaccess_1m', async (ctx) => {
   await ctx.editMessageText(
     '🔥 *Full Access Pass (1 Monat)*\n40GB Galerie – Zugang zu allen exklusiven Inhalten.',
@@ -187,31 +188,51 @@ bot.action('fullaccess_1m', async (ctx) => {
   );
 });
 
+// ℹ️ Info
 bot.action('info_fullaccess_1m', async (ctx) => {
-  await ctx.editMessageText('ℹ️ *Info*\nZugang zu ALLEN Premiuminhalten für einen Monat.', {
-    parse_mode: 'Markdown',
-    reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]] }
-  });
-});
-
-bot.action('preis_fullaccess_1m', async (ctx) => {
-  await ctx.editMessageText('💰 *Preis*: 50€', {
-    parse_mode: 'Markdown',
-    reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]] }
-  });
-});
-
-bot.action('pay_fullaccess_1m', async (ctx) => {
-  await ctx.editMessageText('💳 *Wähle deine Zahlungsmethode:*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
-        [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
-      ]
+  await ctx.editMessageText(
+    'ℹ️ *Info*\nZugang zu ALLEN Premiuminhalten für einen Monat.',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
+        ]
+      }
     }
-  });
+  );
+});
+
+// 💰 Preis
+bot.action('preis_fullaccess_1m', async (ctx) => {
+  await ctx.editMessageText(
+    '💰 *Preis*: 50€',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
+        ]
+      }
+    }
+  );
+});
+
+// 💳 Jetzt bezahlen → Auswahl PayPal & SumUp
+bot.action('pay_fullaccess_1m', async (ctx) => {
+  await ctx.editMessageText(
+    '💳 *Wähle deine Zahlungsmethode:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
+          [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
+          [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
+        ]
+      }
+    }
+  );
 });
 
 // 📦 Video Packs
