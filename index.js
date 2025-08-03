@@ -88,7 +88,7 @@ bot.start(async (ctx) => {
   });
 });
 
-// Admin-Befehl
+// Admin Menü
 bot.command('admin', async (ctx) => {
   if (ctx.from.id !== 5647887831) {
     return ctx.reply('❌ Nur der Admin darf diesen Befehl verwenden.');
@@ -100,7 +100,8 @@ bot.command('admin', async (ctx) => {
       inline_keyboard: [
         [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
         [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
-        [{ text: '🧪 Test Status', callback_data: 'admin_test_status' }],
+        [{ text: '🧪 Test Status', callback_data: 'test_status' }],
+        [{ text: '🔍 Check IDs', callback_data: 'admin_check_ids' }],
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
@@ -777,6 +778,25 @@ bot.action('admin_test_status', async (ctx) => {
   }
 
   await ctx.reply(`✅ Teststatus gesetzt: ${status} gültig bis ${endDate.toLocaleDateString()}`);
+});
+
+// Admin: Check IDs
+bot.action('admin_check_ids', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+
+  const { data, error } = await supabase.from('users').select('id, username, status');
+
+  if (error) {
+    console.error(error);
+    return ctx.reply('❌ Fehler beim Abrufen der IDs.');
+  }
+
+  let msg = '📋 *Gespeicherte User:*\n\n';
+  data.forEach(user => {
+    msg += `🆔 ${user.id} (${user.username || 'Kein Username'}) – Status: ${user.status || '—'}\n`;
+  });
+
+  await ctx.reply(msg, { parse_mode: 'Markdown' });
 });
 
 // Broadcast-Befehl
