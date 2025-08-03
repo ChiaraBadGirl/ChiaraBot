@@ -10,17 +10,6 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.ap
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
 
-// Supabase + Bot Setup
-import express from "express";
-import { Telegraf } from "telegraf";
-import { supabase } from "./supabaseClient.js";
-
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
-const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN;
-
-const bot = new Telegraf(BOT_TOKEN);
-
 // 🔹 Funktion hier platzieren:
 async function activatePass(ctx, statusCode, durationDays, backCallback) {
   const userId = ctx.from.id;
