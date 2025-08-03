@@ -1,6 +1,20 @@
 import { Telegraf, Markup } from 'telegraf';
 import { supabase } from './supabaseClient.js';
 
+// Verbindungstest zu Supabase
+(async () => {
+  try {
+    const { data, error } = await supabase.from('users').select('id');
+    if (error) {
+      console.error("❌ Fehler bei Supabase Verbindung:", error.message);
+    } else {
+      console.log(`✅ Supabase Verbindung OK – aktuell ${data.length} User gespeichert.`);
+    }
+  } catch (err) {
+    console.error("❌ Unerwarteter Fehler bei Supabase Test:", err);
+  }
+})();
+
 const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
 // User speichern
