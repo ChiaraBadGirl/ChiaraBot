@@ -526,6 +526,43 @@ bot.action('pay_girlfriend', async (ctx) => {
   await activatePass(ctx, 'GF', 7, 'preise_girlfriend');
 });
 
+// 💖 Girlfriend Pass
+bot.action('preise_girlfriend', async (ctx) => {
+  await ctx.editMessageText('💖 *Girlfriend Pass*\n\n💌 1 Woche Daily Chats (30 Min) + Full Access + intime Momente nur für dich.', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ️ Info', callback_data: 'info_girlfriend' }],
+        [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
+        [{ text: '🛒 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
+        [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
+      ]
+    }
+  });
+});
+
+bot.action('info_girlfriend', async (ctx) => {
+  await ctx.editMessageText('ℹ️ *Girlfriend Pass Info*\n\n💖 Deine tägliche Dosis Chiara – Chats, Aufgaben & exklusive Betreuung.', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]]
+    }
+  });
+});
+
+bot.action('preis_girlfriend', async (ctx) => {
+  await ctx.editMessageText('💰 *Preis:* 150€/Woche', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]]
+    }
+  });
+});
+
+bot.action('pay_girlfriend', async (ctx) => {
+  await activatePass(ctx, 'GF', 7, 'preise_girlfriend'); // 7 Tage gültig
+});
+
 // 🖤 Domina / Slave Pass
 bot.action('preise_domina', async (ctx) => {
   await ctx.editMessageText('🖤 *Domina / Slave Pass*\n\n🔥 1 Woche Domina-Experience inkl. Sessions & exklusiver Betreuung.', {
