@@ -10,6 +10,51 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.ap
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
 
+// Supabase + Bot Setup
+import express from "express";
+import { Telegraf } from "telegraf";
+import { supabase } from "./supabaseClient.js";
+
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN;
+
+const bot = new Telegraf(BOT_TOKEN);
+
+// 🔹 Funktion hier platzieren:
+async function activatePass(ctx, statusCode, durationDays, backCallback) {
+  const userId = ctx.from.id;
+
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(startDate.getDate() + durationDays);
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      status: statusCode,
+      status_start: startDate.toISOString().split('T')[0],
+      status_end: endDate.toISOString().split('T')[0]
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error(`❌ Fehler beim Setzen des Status (${statusCode}):`, error);
+    return ctx.reply('⚠️ Fehler beim Aktivieren deines Passes.');
+  }
+
+  await ctx.editMessageText(`✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
+        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
+        [{ text: '🔙 Zurück', callback_data: backCallback }]
+      ]
+    }
+  });
+}
+
 // Express App für Webhook
 const app = express();
 app.use(bot.webhookCallback(`/webhook/${WEBHOOK_SECRET}`));
@@ -217,7 +262,7 @@ bot.action('menu_preise', async (ctx) => {
         [{ text: '📦 Video Packs', callback_data: 'preise_videos' }],
         [{ text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' }],
         [{ text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }],
-        [{ text: '❤️ Girlfriend / Domina Pass', callback_data: 'preise_girlfriend' }],
+        [{ text: '❤️ Girlfriend / Domina Pass', callback_data: 'preise_gf_domina' }],
         [{ text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }],
         [{ text: '🌟 Premium & VIP', callback_data: 'preise_vip' }],
         [{ text: '📀 Custom Videos', callback_data: 'preise_custom' }],
@@ -277,16 +322,7 @@ bot.action('preis_fullaccess_1m', async (ctx) => {
 });
 
 bot.action('pay_fullaccess_1m', async (ctx) => {
-  await ctx.editMessageText('💳 *Wähle deine Zahlungsmethode:*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
-        [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
-      ]
-    }
-  });
+  await activatePass(ctx, 'FullAccess', 30, 'fullaccess_1m');
 });
 
 // 📦 Video Packs
@@ -432,7 +468,9 @@ bot.action('preise_daddy_bronze', async (ctx) => {
 });
 bot.action('info_daddy_bronze', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 1 Sexchat pro Monat.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
 bot.action('preis_daddy_bronze', async (ctx) => ctx.editMessageText('💰 Preis: 80€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
-bot.action('pay_daddy_bronze', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
+bot.action('pay_daddy_bronze', async (ctx) => {
+  await activatePass(ctx, 'Bronze', 30, 'preise_daddy_bronze');
+});
 
 // 🥈 Daddy Silber
 bot.action('preise_daddy_silber', async (ctx) => {
@@ -453,7 +491,9 @@ bot.action('preise_daddy_silber', async (ctx) => {
 });
 bot.action('info_daddy_silber', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 2 Sexchats + Dirty Panty + Privat Chat.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
 bot.action('preis_daddy_silber', async (ctx) => ctx.editMessageText('💰 Preis: 150€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
-bot.action('pay_daddy_silber', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
+bot.action('pay_daddy_silber', async (ctx) => {
+  await activatePass(ctx, 'Silber', 30, 'preise_daddy_silber');
+});
 
 // 🥇 Daddy Gold
 bot.action('preise_daddy_gold', async (ctx) => {
@@ -474,29 +514,65 @@ bot.action('preise_daddy_gold', async (ctx) => {
 });
 bot.action('info_daddy_gold', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 3 Sexchats + Dick Rating + Dirty Panty + Privat Chat + Sextoys.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
 bot.action('preis_daddy_gold', async (ctx) => ctx.editMessageText('💰 Preis: 225€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
-bot.action('pay_daddy_gold', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
+bot.action('pay_daddy_gold', async (ctx) => {
+  await activatePass(ctx, 'Gold', 30, 'preise_daddy_gold');
+});
 
-// ❤️ Girlfriend / Domina Pass
-bot.action('preise_girlfriend', async (ctx) => {
-  await ctx.editMessageText(
-    '🔥 *Girlfriend / Domina Pass* 🔥\n\n' +
-    '❤️ Deine tägliche Dosis Chiara – Chats, Aufgaben & intime Momente nur für dich.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ Info', callback_data: 'info_girlfriend' }],
-          [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+// ❤️ Girlfriend / Domina Menü
+bot.action('preise_gf_domina', async (ctx) => {
+  await ctx.editMessageText('❤️ *Girlfriend & Domina Pässe*\n\n💖 Wähle deinen Pass:', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '💖 Girlfriend Pass', callback_data: 'preise_girlfriend' }],
+        [{ text: '🖤 Domina / Slave Pass', callback_data: 'preise_domina' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 bot.action('info_girlfriend', async (ctx) => ctx.editMessageText('ℹ️ Daily Chats (30 Min) + Full Access + Private Nummer.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
 bot.action('preis_girlfriend', async (ctx) => ctx.editMessageText('💰 Preis: 150€/Woche', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
-bot.action('pay_girlfriend', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
+bot.action('pay_girlfriend', async (ctx) => {
+  await activatePass(ctx, 'GF', 7, 'preise_girlfriend');
+});
+
+// 🖤 Domina / Slave Pass
+bot.action('preise_domina', async (ctx) => {
+  await ctx.editMessageText('🖤 *Domina / Slave Pass*\n\n🔥 1 Woche Domina-Experience inkl. Sessions & exklusiver Betreuung.', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_domina' }],
+        [{ text: '💰 Preis', callback_data: 'preis_domina' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_domina' }],
+        [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
+      ]
+    }
+  });
+});
+
+bot.action('info_domina', async (ctx) => {
+  await ctx.editMessageText('ℹ *Domina / Slave Pass Info*\n\n🖤 1 Woche Domina-Power – inklusive Sessions & Kontrolle.', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_domina' }]]
+    }
+  });
+});
+
+bot.action('preis_domina', async (ctx) => {
+  await ctx.editMessageText('💰 *Preis*: 150€/Woche', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_domina' }]]
+    }
+  });
+});
+
+bot.action('pay_domina', async (ctx) => {
+  await activatePass(ctx, 'Domina', 7, 'preise_domina');
+});
 
 // 🌟 Premium & VIP
 bot.action('preise_vip', async (ctx) => {
@@ -518,7 +594,9 @@ bot.action('preise_vip', async (ctx) => {
 });
 bot.action('info_vip', async (ctx) => ctx.editMessageText('ℹ️ Snapchat VIP & Telegram Premium Zugang.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }));
 bot.action('preis_vip', async (ctx) => ctx.editMessageText('💰 Preis: Snapchat 35€, Telegram 40€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }));
-bot.action('pay_vip', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }));
+bot.action('pay_vip', async (ctx) => {
+  await activatePass(ctx, 'VIP', 30, 'preise_vip');
+});
 
 // 📀 Custom Videos
 bot.action('preise_custom', async (ctx) => {
