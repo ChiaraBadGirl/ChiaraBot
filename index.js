@@ -7,6 +7,9 @@ const BOT_TOKEN = process.env.BOT_TOKEN || "DEIN_BOT_TOKEN";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
 
+// 1️⃣ Bot erstellen (muss VOR Webhook Callback passieren!)
+const bot = new Telegraf(BOT_TOKEN);
+
 // Express App für Webhook
 const app = express();
 app.use(bot.webhookCallback(`/webhook/${WEBHOOK_SECRET}`));
@@ -37,8 +40,6 @@ app.listen(8080, () => {
     console.error("❌ Unerwarteter Fehler bei Supabase Test:", err);
   }
 })();
-
-const bot = new Telegraf('8481800262:AAEt0mEAoKkj2wz2Q32-w__1aYA-CpHhlT4');
 
 // User speichern
 async function saveUser(user) {
