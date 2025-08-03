@@ -142,26 +142,16 @@ bot.action('menu_preise', async (ctx) => {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [
-          { text: '🎟 Full Access & Pässe', callback_data: 'preise_fullaccess' },
-          { text: '📦 Video Packs', callback_data: 'preis_videos' }
-        ],
-        [
-          { text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' },
-          { text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }
-        ],
-        [
-          { text: '❤️ Girlfriend / Domina Pass', callback_data: 'preis_girlfriend' },
-          { text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }
-        ],
-        [
-          { text: '🌟 Premium & VIP', callback_data: 'preise_vip' },
-          { text: '📀 Custom Videos', callback_data: 'preise_custom' }
-        ],
-        [
-          { text: '🧦 Dirty Panties & Socks', callback_data: 'preise_dirty' },
-          { text: '⬅️ Zurück', callback_data: 'go_menu' }
-        ]
+        [{ text: '🎟 Full Access & Pässe', callback_data: 'preise_fullaccess' }],
+        [{ text: '📦 Video Packs', callback_data: 'preise_videos' }],
+        [{ text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' }],
+        [{ text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }],
+        [{ text: '❤️ Girlfriend / Domina Pass', callback_data: 'preise_girlfriend' }],
+        [{ text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }],
+        [{ text: '🌟 Premium & VIP', callback_data: 'preise_vip' }],
+        [{ text: '📀 Custom Videos', callback_data: 'preise_custom' }],
+        [{ text: '🧦 Dirty Panties & Socks', callback_data: 'preise_panties' }],
+        [{ text: '🔙 Zurück', callback_data: 'go_menu' }]
       ]
     }
   });
@@ -240,7 +230,7 @@ bot.action('preise_daddy', async (ctx) => {
 });
 
 // ❤️ Girlfriend / Domina Pass
-bot.action('preise_gf_domina', async (ctx) => {
+bot.action('preis_girlfriend', async (ctx) => {
   await ctx.editMessageText(
     '❤️ *Girlfriend & Domina Pass*\n\n' +
     '💖 *Girlfriend Pass* – Daily Chats (30 Min) + Full Access + Private Nummer – 150€/Woche\n' +
