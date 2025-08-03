@@ -142,23 +142,33 @@ bot.action('menu_preise', async (ctx) => {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🎟 Full Access & Pässe', callback_data: 'preise_access' }],
-        [{ text: '📦 Video Packs', callback_data: 'preise_videos' }],
-        [{ text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' }],
-        [{ text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }],
-        [{ text: '❤️ Girlfriend / Domina Pass', callback_data: 'preise_gf_domina' }],
-        [{ text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }],
-        [{ text: '🌟 Premium & VIP', callback_data: 'preise_vip' }],
-        [{ text: '📀 Custom Videos', callback_data: 'preise_custom' }],
-        [{ text: '🧦 Dirty Panties & Socks', callback_data: 'preise_panties' }],
-        [{ text: '🔙 Zurück', callback_data: 'go_menu' }]
+        [
+          { text: '🎟 Full Access & Pässe', callback_data: 'preise_fullaccess' },
+          { text: '📦 Video Packs', callback_data: 'preis_videos' }
+        ],
+        [
+          { text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' },
+          { text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }
+        ],
+        [
+          { text: '❤️ Girlfriend / Domina Pass', callback_data: 'preis_girlfriend' },
+          { text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }
+        ],
+        [
+          { text: '🌟 Premium & VIP', callback_data: 'preise_vip' },
+          { text: '📀 Custom Videos', callback_data: 'preise_custom' }
+        ],
+        [
+          { text: '🧦 Dirty Panties & Socks', callback_data: 'preise_dirty' },
+          { text: '⬅️ Zurück', callback_data: 'go_menu' }
+        ]
       ]
     }
   });
 });
 
 // 🎟 Full Access & Pässe
-bot.action('preise_access', async (ctx) => {
+bot.action('preise_fullaccess', async (ctx) => {
   await ctx.editMessageText(
     '🎟 *Full Access & Pässe*\n\n' +
     '🔥 *Full Access Pass* (40GB Galerie – 1 Monat) – *50€*\n\n' +
