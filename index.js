@@ -154,6 +154,7 @@ bot.action('info_social', async (ctx) => {
         [{ text: '🐦 Twitter', url: 'https://www.x.com/chiarabadgirl' }],
         [{ text: '🎵 TikTok', url: 'https://www.tiktok.com/@biancanerini_offiziell' }],
         [{ text: '📘 Facebook', url: 'https://www.facebook.com/share/1QLd19Djha/?mibextid=wwXIfr' }],
+        [{ text: '🔞 18+ Accounts', callback_data: 'info_links' }],
         [{ text: '🔙 Zurück', callback_data: 'go_info' }]
       ]
     }
