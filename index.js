@@ -187,7 +187,7 @@ bot.action('info_links', async (ctx) => {
         [{ text: '‼️ 4Based', url: 'https://4based.com/profile/chiarabadgirl' }],
         [{ text: '🍀 Fanseven', url: 'https://www.fanseven.com/chiarabadgirl' }],
         [{ text: '🫶🏻 Maloum', url: 'https://app.maloum.com/creator/chiarabadgirl' }],
-        [{ text: '🔙 Zurück', callback_data: 'info_social' }]
+        [{ text: '🔙 Zurück', callback_data: 'go_info' }]
       ]
     }
   });
