@@ -753,31 +753,30 @@ bot.action('admin_menu', async (ctx) => {
 
 // 🔍 Test Status im Admin Menü
 bot.action('admin_test_status', async (ctx) => {
-  if (ctx.from.id !== 5647887831) {
-    return ctx.reply('❌ Nur Admin kann diesen Befehl nutzen.');
-  }
+  if (ctx.from.id !== 5647887831) return;
 
-  const status = 'GF';
-  const startDate = new Date();
+  const testStatus = 'GF';
+  const now = new Date();
   const endDate = new Date();
-  endDate.setDate(startDate.getDate() + 7); // GF für 1 Woche
+  endDate.setDate(now.getDate() + 7); // +7 Tage
 
-  // Update in Supabase
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .update({
-      status: status,
-      status_start: startDate.toISOString().split('T')[0],
-      status_end: endDate.toISOString().split('T')[0]
+      status: testStatus,
+      status_start: now.toISOString(),
+      status_end: endDate.toISOString()
     })
-    .eq('id', ctx.from.id);
+    .eq('id', ctx.from.id) // WICHTIG: hier sicherstellen, dass ID stimmt
+    .select();
 
   if (error) {
-    console.error("❌ Fehler bei Supabase:", error);
-    return ctx.reply('❌ Fehler beim Speichern in Supabase.');
+    console.error('❌ Fehler beim Update:', error.message);
+    await ctx.reply(`❌ Fehler beim Setzen des Status: ${error.message}`);
+  } else {
+    console.log('✅ Update erfolgreich:', data);
+    await ctx.reply(`✅ Teststatus gesetzt: ${testStatus} gültig bis ${endDate.toLocaleDateString()}`);
   }
-
-  await ctx.reply(`✅ Teststatus gesetzt: ${status} gültig bis ${endDate.toLocaleDateString()}`);
 });
 
 // Admin: Check IDs
