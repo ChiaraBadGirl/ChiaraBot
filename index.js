@@ -70,22 +70,21 @@ bot.start(async (ctx) => {
   };
   await saveUser(user);
 
-  await ctx.reply('👋 *Willkommen bei ChiaraBadGirlsBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: 'ℹ️Info', callback_data: 'go_info' },
-          { text: '🧾Menu', callback_data: 'go_menu' }
-        ],
-        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
-        [
-          { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
-          { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
-        ]
+  await ctx.reply('🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\nBereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\nWähle unten, wohin dein nächstes Abenteuer geht…', {
+  parse_mode: 'Markdown',
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: 'ℹ️ Info', callback_data: 'go_info' },
+        { text: '🧾 Menu', callback_data: 'go_menu' }
+      ],
+      [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
+      [
+        { text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
+        { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
       ]
-    }
-  });
+    ]
+  }
 });
 
 // Admin-Befehl
