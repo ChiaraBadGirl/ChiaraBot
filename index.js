@@ -750,28 +750,33 @@ bot.action('admin_menu', async (ctx) => {
   });
 });
 
-// 🆕 Admin: Test-Status setzen
+// 🔍 Test Status im Admin Menü
 bot.action('admin_test_status', async (ctx) => {
-  const userId = ctx.from.id;
-  const today = new Date();
-  const endDate = new Date();
-  endDate.setDate(today.getDate() + 7); // Beispiel: 1 Woche gültig
+  if (ctx.from.id !== 5647887831) {
+    return ctx.reply('❌ Nur Admin kann diesen Befehl nutzen.');
+  }
 
+  const status = 'GF';
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(startDate.getDate() + 7); // GF für 1 Woche
+
+  // Update in Supabase
   const { error } = await supabase
     .from('users')
     .update({
-      status: 'GF',
-      status_start: today.toISOString().split('T')[0],
+      status: status,
+      status_start: startDate.toISOString().split('T')[0],
       status_end: endDate.toISOString().split('T')[0]
     })
-    .eq('id', userId);
+    .eq('id', ctx.from.id);
 
   if (error) {
-    console.error(error);
-    return ctx.reply('❌ Fehler beim Setzen des Status');
+    console.error("❌ Fehler bei Supabase:", error);
+    return ctx.reply('❌ Fehler beim Speichern in Supabase.');
   }
 
-  await ctx.reply(`✅ Teststatus gesetzt: GF gültig bis ${endDate.toLocaleDateString()}`);
+  await ctx.reply(`✅ Teststatus gesetzt: ${status} gültig bis ${endDate.toLocaleDateString()}`);
 });
 
 // Broadcast-Befehl
