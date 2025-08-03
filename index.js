@@ -1,5 +1,31 @@
-import { Telegraf, Markup } from 'telegraf';
-import { supabase } from './supabaseClient.js';
+import express from "express";
+import { Telegraf, Markup } from "telegraf";
+import { supabase } from "./supabaseClient.js";
+
+// Variablen aus Railway
+const BOT_TOKEN = process.env.BOT_TOKEN || "DEIN_BOT_TOKEN";
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
+const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
+
+// Bot erstellen
+const bot = new Telegraf(BOT_TOKEN);
+
+// Express App für Webhook
+const app = express();
+app.use(bot.webhookCallback(`/webhook/${WEBHOOK_SECRET}`));
+
+// Webhook bei Telegram registrieren
+bot.telegram.setWebhook(`https://${RAILWAY_DOMAIN}/webhook/${WEBHOOK_SECRET}`);
+
+// Test Endpoint
+app.get("/", (req, res) => {
+  res.send("✅ ChiaraBot läuft über Webhook!");
+});
+
+// Server starten
+app.listen(8080, () => {
+  console.log(`🚀 Bot läuft über Webhook auf Port 8080`);
+});
 
 // Verbindungstest zu Supabase
 (async () => {
