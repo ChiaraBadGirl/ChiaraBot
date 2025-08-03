@@ -121,6 +121,27 @@ bot.action('go_info', async (ctx) => {
   });
 });
 
+bot.action('info_wer', async (ctx) => {
+  await ctx.editMessageText(
+    '🔥 *ChiaraBadGirl – About Me* 🔥\n\n' +
+    'Hey Baby 😈, ich bin *Chiara*, 26 Jahre alt – mit Wurzeln in *Luxemburg* & *Germany* 🇱🇺🇩🇪.\n\n' +
+    '💦 *Squirt Queen* – ich weiß, wie man dich nass macht 😏\n' +
+    '😈 *BadBiitch* – wild, frech und immer ein bisschen gefährlich\n' +
+    '🖤 *Tätowiert & einzigartig* – Kunst auf meiner Haut und in meinem Leben\n\n' +
+    '💌 *Hier bekommst du*: Exklusive Pics, heiße Videos, private Chats & besondere Sessions.\n' +
+    '💎 Dein VIP-Zugang zu einer Welt ohne Grenzen.\n\n' +
+    '🔥 *ChiaraBadGirl – Dein geheimes Vergnügen wartet!* 🔥',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Zurück', callback_data: 'go_info' }]
+        ]
+      }
+    }
+  );
+});
+
 // Menü
 bot.action('go_menu', async (ctx) => {
   await ctx.editMessageText('🧾 *Menu:*', {
