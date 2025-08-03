@@ -5,7 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
-// 🛠 Testausgabe im Log
+// 🧪 Testausgabe im Log
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error("❌ Supabase Keys fehlen! Bitte in Railway Variables setzen.");
 } else {
