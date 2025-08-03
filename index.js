@@ -159,144 +159,122 @@ bot.action('menu_preise', async (ctx) => {
 
 // 🎟 Full Access & Pässe
 bot.action('preise_fullaccess', async (ctx) => {
-  await ctx.editMessageText(
-    '🎟 *Full Access & Pässe*\n\n' +
-    '🔥 *Full Access Pass* (40GB Galerie – 1 Monat) – *50€*\n\n' +
-    '💎 Zugriff auf exklusive Inhalte und Premium-Material für einen Monat.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('🎟 *Full Access & Pässe*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_fullaccess' }],
+        [{ text: '💰 Preis', callback_data: 'preis_fullaccess' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_fullaccess' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // 📦 Video Packs
 bot.action('preise_videos', async (ctx) => {
-  await ctx.editMessageText(
-    '📦 *Video Packs – Lifetime Access*\n\n' +
-    '🎥 *5 Videos* – 50€\n' +
-    '🎥 *10 Videos* – 90€\n' +
-    '🎥 *15 Videos* – 120€\n\n' +
-    '💎 Einmal zahlen – für immer genießen!',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('📦 *Video Packs*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_videos' }],
+        [{ text: '💰 Preis', callback_data: 'preis_videos' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // 💬 Sexchat Sessions
 bot.action('preise_sexchat', async (ctx) => {
-  await ctx.editMessageText(
-    '💬 *Sexchat Sessions (30 Min)*\n\n' +
-    '🔥 *Normal* – 30€\n' +
-    '🔥 *Extra* – 60€\n\n' +
-    '💦 Deine ganz private Session – direkt und intensiv.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('💬 *Sexchat Sessions*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_sexchat' }],
+        [{ text: '💰 Preis', callback_data: 'preis_sexchat' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_sexchat' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // 👑 Daddy / Domina & More
 bot.action('preise_daddy', async (ctx) => {
-  await ctx.editMessageText(
-    '👑 *Daddy / Domina & More*\n\n' +
-    '🥉 *Daddy Bronze* – Full Access + 1x Sexchat – 80€/Monat\n' +
-    '🥈 *Daddy Silber* – Full Access + 2x Sexchat + Dirty Panty + Privat Chat – 150€/Monat\n' +
-    '🥇 *Daddy Gold* – Full Access + 3x Sexchat + Dick Rating + Dirty Panty + Privat Chat + Sextoys – 225€/Monat',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('👑 *Daddy / Domina & More*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_daddy' }],
+        [{ text: '💰 Preis', callback_data: 'preis_daddy' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // ❤️ Girlfriend / Domina Pass
 bot.action('preise_girlfriend', async (ctx) => {
-  await ctx.editMessageText(
-    '❤️ *Girlfriend & Domina Pass*\n\n' +
-    '💖 *Girlfriend Pass* – Daily Chats (30 Min) + Full Access + Private Nummer – 150€/Woche\n' +
-    '👠 *Domina Pass* – Daily Chats (30 Min) + Aufgaben + Beweisvideos – 150€/Woche',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('❤️ *Girlfriend / Domina Pass*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_girlfriend' }],
+        [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // 🌟 Premium & VIP
 bot.action('preise_vip', async (ctx) => {
-  await ctx.editMessageText(
-    '🌟 *Premium & VIP*\n\n' +
-    '👑 *Snapchat VIP (XXX Stories)* – 35€\n' +
-    '📲 *Telegram Premium* – 40€',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('🌟 *Premium & VIP*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_vip' }],
+        [{ text: '💰 Preis', callback_data: 'preis_vip' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_vip' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // 📀 Custom Videos
 bot.action('preise_custom', async (ctx) => {
-  await ctx.editMessageText(
-    '📀 *Custom Videos*\n\n' +
-    '🎥 *3 Minuten* – 100€\n' +
-    '🎥 *5 Minuten* – 140€\n' +
-    '🔥 Individueller Wunsch-Content möglich!',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('📀 *Custom Videos*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_custom' }],
+        [{ text: '💰 Preis', callback_data: 'preis_custom' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // 🧦 Dirty Panties & Socks
 bot.action('preise_panties', async (ctx) => {
-  await ctx.editMessageText(
-    '🧦 *Dirty Panties & Socks*\n\n' +
-    '👙 *Panty* – 40€\n' +
-    '🧦 *Socks* – 30€\n' +
-    '🔥 Jeder weitere Tag getragen – +20€',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
-      }
+  await ctx.editMessageText('🧦 *Dirty Panties & Socks*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ Info', callback_data: 'info_panties' }],
+        [{ text: '💰 Preis', callback_data: 'preis_panties' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_panties' }],
+        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+      ]
     }
-  );
+  });
 });
 
 // Regeln
