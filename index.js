@@ -496,44 +496,8 @@ bot.action('preise_girlfriend', async (ctx) => {
 });
 bot.action('info_girlfriend', async (ctx) => ctx.editMessageText('ℹ️ Daily Chats (30 Min) + Full Access + Private Nummer.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
 bot.action('preis_girlfriend', async (ctx) => ctx.editMessageText('💰 Preis: 150€/Woche', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
+bot.action('pay_girlfriend', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
 
-// 💳 Jetzt bezahlen (Girlfriend Pass)
-bot.action('pay_girlfriend', async (ctx) => {
-  const userId = ctx.from.id;
-
-  // Heutiges Datum
-  const startDate = new Date();
-  // Enddatum (1 Woche später)
-  const endDate = new Date();
-  endDate.setDate(startDate.getDate() + 7);
-
-  // Status in Supabase setzen
-  const { error } = await supabase
-    .from('users')
-    .update({
-      status: 'GF',
-      status_start: startDate.toISOString().split('T')[0],
-      status_end: endDate.toISOString().split('T')[0]
-    })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('❌ Fehler beim Setzen des Status:', error);
-    return ctx.reply('⚠️ Fehler beim Aktivieren deines Passes.');
-  }
-
-  // Bestätigung an User
-  await ctx.editMessageText('✅ *Girlfriend Pass aktiviert!*\n\n💖 Gültig bis: ' + endDate.toLocaleDateString('de-DE'), {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]
-      ]
-    }
-  });
-});
 // 🌟 Premium & VIP
 bot.action('preise_vip', async (ctx) => {
   await ctx.editMessageText(
