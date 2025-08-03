@@ -789,7 +789,7 @@ bot.action('mein_bereich', async (ctx) => {
 
 // Back to home
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText('👋 *Willkommen bei ChiaraBadGirlBot!*\n\nNutze das Menü unten, um alles zu entdecken.', {
+  await ctx.editMessageText('🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\nBereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\nWähle unten, wohin dein nächstes Abenteuer geht…', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
