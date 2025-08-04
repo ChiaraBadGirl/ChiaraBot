@@ -56,16 +56,19 @@ async function activatePass(ctx, statusCode, durationDays, backCallback) {
     return ctx.reply('⚠️ Fehler beim Aktivieren deines Passes.');
   }
 
-  await ctx.editMessageText(`✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
-        [{ text: '🔙 Zurück', callback_data: backCallback }]
-      ]
+  await ctx.editMessageText(
+    `✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, 
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
+          [{ text: '💳 Kredit-/Debitkarte • 📱 Apple/Google Pay', url: 'https://sumup.com/deinlink' }],
+          [{ text: '🔙 Zurück', callback_data: backCallback }]
+        ]
+      }
     }
-  });
+  );
 }
 
 // Express App für Webhook
@@ -844,16 +847,6 @@ bot.action('pay_domina', async (ctx) => {
 });
 
 bot.action('preise_vip', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-    `&business=sb-1sii637606070@business.example.com` +
-    `&item_name=VIP+Pass` +
-    `&amount=40.00` +
-    `&currency_code=EUR` +
-    `&custom=${telegramId}` +
-    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIP_PASS&price=40` +
-    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-
   await ctx.editMessageText(
     '🔥 *Premium & VIP* 🔥\n\n' +
     '🌟 Werde Teil des exklusiven VIP-Kreises – mehr Nähe, mehr Content, mehr Chiara.',
@@ -863,8 +856,39 @@ bot.action('preise_vip', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ Info', callback_data: 'info_vip' }],
           [{ text: '💰 Preis', callback_data: 'preis_vip' }],
-          [{ text: '💵 PayPal (Sandbox)', url: paypalLink }],
+          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_vip' }],
           [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
+        ]
+      }
+    }
+  );
+});
+
+bot.action('pay_vip', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  // 🔹 PayPal Link (Sandbox aktuell)
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=VIP+Pass` +
+    `&amount=40.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIP_PASS&price=40` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  // 🔹 Kredit-/Apple Pay (SumUp Link)
+  const sumupLink = `https://meine-sumup-checkout-url.de`; // <-- Hier kommt später dein echter Link rein
+
+  await ctx.editMessageText(
+    '💳 *Wähle deine Zahlungsmethode für VIP Pass*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal (Sandbox)', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte • 📱 Apple/Google Pay', url: sumupLink }],
+          [{ text: '🔙 Zurück', callback_data: 'preise_vip' }]
         ]
       }
     }
