@@ -152,7 +152,7 @@ bot.command('admin', async (ctx) => {
 
 // Info-Menü
 bot.action('go_info', async (ctx) => {
-  await ctx.editMessageText('ℹ️ *Info-Menü:*', {
+  await ctx.reply('ℹ️ *Info-Menü:*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
@@ -167,7 +167,7 @@ bot.action('go_info', async (ctx) => {
 
 // Info Wer Bin Ich
 bot.action('info_wer', async (ctx) => {
-  await ctx.editMessageText(
+  await ctx.reply(
     '🔥 *ChiaraBadGirl – About Me* 🔥\n\n' +
     'Hey Baby 😈, ich bin *Chiara*, 26 Jahre jung – mit Wurzeln in 🇱🇺 *Luxemburg* & 🇩🇪 *Germany*.\n\n' +
     '💦 *Squirt Queen* – ich weiß genau, wie man dich nass macht 😏\n' +
@@ -827,7 +827,7 @@ bot.action('admin_stats', async (ctx) => {
     return ctx.reply('Fehler beim Abrufen der Statistik.');
   }
 
-  await ctx.editMessageText(`📊 *Gespeicherte User: ${data.length}*`, {
+  await ctx.reply(`📊 *Gespeicherte User: ${data.length}*`, {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
