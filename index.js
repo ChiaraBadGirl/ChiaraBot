@@ -749,38 +749,55 @@ bot.action('go_regeln', async (ctx) => {
 bot.action('mein_bereich', async (ctx) => {
   const userId = ctx.from.id;
 
-  // Userdaten aus Supabase abrufen
-  const { data, error } = await supabase
+  // Daten aus Supabase abrufen
+  const { data: user, error } = await supabase
     .from('users')
     .select('status, status_start, status_end, punkte, produkte')
     .eq('id', userId)
     .single();
 
-  if (error || !data) {
-    console.error('Fehler beim Abrufen der Userdaten:', error);
-    return ctx.editMessageText('⚠️ Fehler: Konnte deine Daten nicht abrufen.');
+  if (error || !user) {
+    console.error(error);
+    return ctx.reply('⚠️ Fehler beim Laden deines Bereichs.');
   }
 
-  // Werte auslesen & Fallbacks setzen
-  const status = data.status || '—';
-  const start = data.status_start || '—';
-  const end = data.status_end || '—';
-  const punkte = data.punkte || 0;
-  const produkte = data.produkte?.join(', ') || 'Keine Käufe';
+  // Status-Emoji
+  let statusEmoji = '📄';
+  switch (user.status) {
+    case 'GF': statusEmoji = '💖'; break;
+    case 'SLAVE': statusEmoji = '🖤'; break;
+    case 'FULL': statusEmoji = '💎'; break;
+    case 'DADDY_BRONZE': statusEmoji = '🥉'; break;
+    case 'DADDY_SILBER': statusEmoji = '🥈'; break;
+    case 'DADDY_GOLD': statusEmoji = '🔥'; break;
+    case 'VIP': statusEmoji = '🏆'; break;
+  }
 
-  // Nachricht an User
+  // Ablaufdatum & Countdown
+  const today = new Date();
+  const endDate = new Date(user.status_end);
+  const diffDays = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+
+  // Produkte lesbar machen
+  let gekaufteProdukte = user.produkte && user.produkte.length > 0
+    ? user.produkte
+    : 'Keine';
+
   await ctx.editMessageText(
     `📂 *Dein Bereich*\n\n` +
-    `📌 *Status:* ${status}\n` +
-    `🗓 *Start:* ${start}\n` +
-    `⏳ *Ende:* ${end}\n` +
-    `⭐ *Punkte:* ${punkte}\n` +
-    `🛒 *Gekaufte Produkte:* ${produkte}`,
+    `${statusEmoji} *Status:* ${user.status || 'Kein'}\n` +
+    `⏳ *Verbleibend:* ${diffDays} Tage\n` +
+    `🗓 *Start:* ${user.status_start || '-'}\n` +
+    `🛑 *Ende:* ${user.status_end || '-'}\n\n` +
+    `⭐ *Punkte:* ${user.punkte || 0}\n` +
+    `🛍 *Gekaufte Produkte:* ${gekaufteProdukte}\n\n` +
+    `🔥 Tipp: Löse deine Punkte ein für Rabatte & Boni!`,
     {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'go_menu' }]
+          [{ text: '🛒 Punkte einlösen', callback_data: 'punkte_einloesen' }],
+          [{ text: '🔙 Zurück', callback_data: 'back_home' }]
         ]
       }
     }
