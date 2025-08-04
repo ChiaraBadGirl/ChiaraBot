@@ -707,8 +707,16 @@ bot.action('pay_domina', async (ctx) => {
   await activatePass(ctx, 'Domina', 7, 'preise_domina');
 });
 
-// 🌟 Premium & VIP
 bot.action('preise_vip', async (ctx) => {
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=VIP+Pass` +
+    `&amount=40.00` +
+    `&currency_code=EUR` +
+    `&custom=${ctx.from.id}` + 
+    `&notify_url=https://${RAILWAY_DOMAIN}/paypal/webhook` + 
+    `&return=https://t.me/ChiaraBadGirl`;
+
   await ctx.editMessageText(
     '🔥 *Premium & VIP* 🔥\n\n' +
     '🌟 Werde Teil des exklusiven VIP-Kreises – mehr Nähe, mehr Content, mehr Chiara.',
@@ -718,12 +726,7 @@ bot.action('preise_vip', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ Info', callback_data: 'info_vip' }],
           [{ text: '💰 Preis', callback_data: 'preis_vip' }],
-          [
-            { 
-              text: '💵 PayPal (Sandbox)', 
-              url: 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick&business=sb-1sii637606070@business.example.com&item_name=VIP+Pass&amount=40.00&currency_code=EUR' 
-            }
-          ],
+          [{ text: '💵 PayPal (Sandbox)', url: paypalLink }],
           [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
         ]
       }
