@@ -998,7 +998,7 @@ bot.action('go_regeln', async (ctx) => {
   });
 });
 
-// 📂 Mein Bereich
+// 📂 Mein Bereich (MarkdownV2 safe)
 bot.action('mein_bereich', async (ctx) => {
   const userId = ctx.from.id;
 
@@ -1031,11 +1031,12 @@ bot.action('mein_bereich', async (ctx) => {
   const endDate = new Date(user.status_end);
   const diffDays = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
 
-  // Produkte lesbar machen
-  let gekaufteProdukte = user.produkte && user.produkte.length > 0
-    ? user.produkte
+  // Produkte MarkdownV2-sicher machen
+  let gekaufteProdukte = (user.produkte && user.produkte.length > 0)
+    ? user.produkte.map(p => p.replace(/([_\*\[\]\(\)~`>#+\-=|{}\.!])/g, '\\$1')).join(", ")
     : 'Keine';
 
+  // Nachricht mit MarkdownV2
   await ctx.editMessageText(
     `📂 *Dein Bereich*\n\n` +
     `${statusEmoji} *Status:* ${user.status || 'Kein'}\n` +
@@ -1046,7 +1047,7 @@ bot.action('mein_bereich', async (ctx) => {
     `🛍 *Gekaufte Produkte:* ${gekaufteProdukte}\n\n` +
     `🔥 Tipp: Löse deine Punkte ein für Rabatte & Boni!`,
     {
-      parse_mode: 'Markdown',
+      parse_mode: 'MarkdownV2',
       reply_markup: {
         inline_keyboard: [
           [{ text: '🛒 Punkte einlösen', callback_data: 'punkte_einloesen' }],
