@@ -93,7 +93,28 @@ async function saveUser(user) {
   }
 }
 
-// 📌 Start Befehl
+// 📌 Funktion für Start & Home Menü
+async function sendHomeMenu(ctx) {
+  await ctx.editMessageText(
+    '🔥 *Willkommen zurück bei ChiaraBadGirlsBot!* 🔥\n\n' +
+    '👑 Dein persönlicher VIP-Bereich wartet auf dich.\n' +
+    '✨ Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n' +
+    '📌 *Wähle im Menü unten:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '📋 Menu', callback_data: 'go_menu' }],
+          [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
+          [{ text: '📢 Mein Kanal', url: 'https://t.me/XCpXcLb52vo0ZGNl' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
+          [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
+        ]
+      }
+    }
+  );
+}
+
+// 🎯 Start Befehl
 bot.start(async (ctx) => {
   const user = {
     id: ctx.from.id,
@@ -102,25 +123,13 @@ bot.start(async (ctx) => {
     last_name: ctx.from.last_name || null,
     language_code: ctx.from.language_code || null
   };
-  await saveUser(user);
+  await saveUser(user); // User speichern
+  await sendHomeMenu(ctx); // Start-Menü anzeigen
+});
 
-  await ctx.editMessageText(
-    '👑 *Willkommen zurück bei ChiaraBadGirlsBot!* 👑\n\n' +
-    '💋 *Dein persönlicher VIP-Bereich wartet auf dich.*\n' +
-    '🔥 Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n' +
-    '👇 *Wähle im Menü unten:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '📋 Menu', callback_data: 'go_menu' }],
-          [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-          [{ text: '📲 Mein Kanal', url: 'https://t.me/XCpXcLb52vo0ZGNl' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-          [{ text: '📂 Mein Bereich', callback_data: 'mein_bereich' }]
-        ]
-      }
-    }
-  );
+// 🔙 Back to Home
+bot.action('back_home', async (ctx) => {
+  await sendHomeMenu(ctx);
 });
 
 // Admin Menü
@@ -802,31 +811,9 @@ bot.action('mein_bereich', async (ctx) => {
   );
 });
 
-// 📌 Home zurück Button
+// Home zurück Button
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText(
-    '👑 *Willkommen zurück bei ChiaraBadGirlsBot!* 👑\n\n' +
-    '💋 *Dein persönlicher VIP-Bereich wartet auf dich.*\n' +
-    '🔥 Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n' +
-    '👇 *Wähle im Menü unten:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'ℹ️ Info', callback_data: 'go_info' },
-            { text: '🧾 Menü', callback_data: 'go_menu' }
-          ],
-          [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-          [
-            { text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
-            { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
-          ],
-          [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
-        ]
-      }
-    }
-  );
+  await sendHomeMenu(ctx); // Einfach Start-/Home-Menü anzeigen
 });
 
 // Admin: Statistik
