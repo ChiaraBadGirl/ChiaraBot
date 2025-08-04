@@ -93,28 +93,7 @@ async function saveUser(user) {
   }
 }
 
-// 📌 Funktion für Start & Home Menü
-async function sendHomeMenu(ctx) {
-  await ctx.editMessageText(
-    '🔥 *Willkommen zurück bei ChiaraBadGirlsBot!* 🔥\n\n' +
-    '👑 Dein persönlicher VIP-Bereich wartet auf dich.\n' +
-    '✨ Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n' +
-    '📌 *Wähle im Menü unten:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '📋 Menu', callback_data: 'go_menu' }],
-          [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-          [{ text: '📢 Mein Kanal', url: 'https://t.me/XCpXcLb52vo0ZGNl' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-          [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
-        ]
-      }
-    }
-  );
-}
-
-// 🎯 Start Befehl
+// 📌 Start Befehl
 bot.start(async (ctx) => {
   const user = {
     id: ctx.from.id,
@@ -123,13 +102,35 @@ bot.start(async (ctx) => {
     last_name: ctx.from.last_name || null,
     language_code: ctx.from.language_code || null
   };
-  await saveUser(user); // User speichern
-  await sendHomeMenu(ctx); // Start-Menü anzeigen
-});
 
-// 🔙 Back to Home
-bot.action('back_home', async (ctx) => {
-  await sendHomeMenu(ctx);
+  await saveUser(user);
+
+  await ctx.reply(
+    '🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n' +
+    'Bereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\n' +
+    'Wähle unten, wohin dein nächstes Abenteuer geht ⬇️',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: 'ℹ️ Info', callback_data: 'go_info' },
+            { text: '📜 Menu', callback_data: 'go_menu' }
+          ],
+          [
+            { text: '‼️ Regeln', callback_data: 'go_regeln' }
+          ],
+          [
+            { text: '📢 Mein Kanal', url: 'https://t.me/XCpXcLb52vo2GNi' },
+            { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
+          ],
+          [
+            { text: '📂 Mein Bereich', callback_data: 'mein_bereich' }
+          ]
+        ]
+      }
+    }
+  );
 });
 
 // Admin Menü
@@ -152,7 +153,7 @@ bot.command('admin', async (ctx) => {
 
 // Info-Menü
 bot.action('go_info', async (ctx) => {
-  await ctx.reply('ℹ️ *Info-Menü:*', {
+  await ctx.editMessageText('ℹ️ *Info-Menü:*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
@@ -165,9 +166,9 @@ bot.action('go_info', async (ctx) => {
   });
 });
 
-// Info Wer Bin Ich
+// Start Naricht
 bot.action('info_wer', async (ctx) => {
-  await ctx.reply(
+  await ctx.editMessageText(
     '🔥 *ChiaraBadGirl – About Me* 🔥\n\n' +
     'Hey Baby 😈, ich bin *Chiara*, 26 Jahre jung – mit Wurzeln in 🇱🇺 *Luxemburg* & 🇩🇪 *Germany*.\n\n' +
     '💦 *Squirt Queen* – ich weiß genau, wie man dich nass macht 😏\n' +
@@ -811,9 +812,33 @@ bot.action('mein_bereich', async (ctx) => {
   );
 });
 
-// Home zurück Button
+// 📌 Home zurück Button
 bot.action('back_home', async (ctx) => {
-  await sendHomeMenu(ctx); // Einfach Start-/Home-Menü anzeigen
+  await ctx.editMessageText(
+    '🔥 *Willkommen zurück in der verbotenen Zone!* 🔥\n\n' +
+    'Nutze das Menü unten, um alles zu entdecken ⬇️',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: 'ℹ️ Info', callback_data: 'go_info' },
+            { text: '📜 Menu', callback_data: 'go_menu' }
+          ],
+          [
+            { text: '‼️ Regeln', callback_data: 'go_regeln' }
+          ],
+          [
+            { text: '📢 Mein Kanal', url: 'https://t.me/XCpXcLb52vo2GNi' },
+            { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
+          ],
+          [
+            { text: '📂 Mein Bereich', callback_data: 'mein_bereich' }
+          ]
+        ]
+      }
+    }
+  );
 });
 
 // Admin: Statistik
@@ -827,7 +852,7 @@ bot.action('admin_stats', async (ctx) => {
     return ctx.reply('Fehler beim Abrufen der Statistik.');
   }
 
-  await ctx.reply(`📊 *Gespeicherte User: ${data.length}*`, {
+  await ctx.editMessageText(`📊 *Gespeicherte User: ${data.length}*`, {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
