@@ -705,19 +705,28 @@ bot.action('preise_vip', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ Info', callback_data: 'info_vip' }],
           [{ text: '💰 Preis', callback_data: 'preis_vip' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_vip' }],
+          [
+            { 
+              text: '💵 PayPal (Sandbox)', 
+              url: 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick&business=sb-1sii637606070@business.example.com&item_name=VIP+Pass&amount=40.00&currency_code=EUR' 
+            }
+          ],
           [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
         ]
       }
     }
   );
 });
-bot.action('info_vip', async (ctx) => ctx.editMessageText('ℹ️ Snapchat VIP & Telegram Premium Zugang.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }));
-bot.action('preis_vip', async (ctx) => ctx.editMessageText('💰 Preis: Snapchat 35€, Telegram 40€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }));
-bot.action('pay_vip', async (ctx) => {
-  await activatePass(ctx, 'VIP', 30, 'preise_vip');
-});
 
+bot.action('info_vip', async (ctx) => ctx.editMessageText(
+  'ℹ️ Snapchat VIP & Telegram Premium Zugang.', 
+  { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }
+));
+
+bot.action('preis_vip', async (ctx) => ctx.editMessageText(
+  '💰 Preis: Snapchat 35€, Telegram 40€', 
+  { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }
+));
 // 📀 Custom Videos
 bot.action('preise_custom', async (ctx) => {
   await ctx.editMessageText(
