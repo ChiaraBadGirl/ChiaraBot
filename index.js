@@ -93,7 +93,7 @@ async function saveUser(user) {
   }
 }
 
-// 📌 Start Befehl
+// Start
 bot.start(async (ctx) => {
   const user = {
     id: ctx.from.id,
@@ -102,35 +102,27 @@ bot.start(async (ctx) => {
     last_name: ctx.from.last_name || null,
     language_code: ctx.from.language_code || null
   };
-
   await saveUser(user);
 
-  await ctx.reply(
-    '🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n' +
-    'Bereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\n' +
-    'Wähle unten, wohin dein nächstes Abenteuer geht ⬇️',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'ℹ️ Info', callback_data: 'go_info' },
-            { text: '📜 Menu', callback_data: 'go_menu' }
-          ],
-          [
-            { text: '‼️ Regeln', callback_data: 'go_regeln' }
-          ],
-          [
-            { text: '📢 Mein Kanal', url: 'https://t.me/XCpXcLb52vo2GNi' },
-            { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
-          ],
-          [
-            { text: '📂 Mein Bereich', callback_data: 'mein_bereich' }
-          ]
+  await ctx.reply('🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\nBereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\nWähle unten, wohin dein nächstes Abenteuer geht…', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'ℹ️ Info', callback_data: 'go_info' },
+          { text: '🧾 Menu', callback_data: 'go_menu' }
+        ],
+        [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
+        [
+          { text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
+          { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
+        ],
+        [{ text: "👤 Mein Bereich", callback_data: "mein_bereich" }],
+        [
         ]
-      }
+      ]
     }
-  );
+  });
 });
 
 // Admin Menü
@@ -812,33 +804,19 @@ bot.action('mein_bereich', async (ctx) => {
   );
 });
 
-// 📌 Home zurück Button
+// Back to home
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText(
-    '🔥 *Willkommen zurück in der verbotenen Zone!* 🔥\n\n' +
-    'Nutze das Menü unten, um alles zu entdecken ⬇️',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'ℹ️ Info', callback_data: 'go_info' },
-            { text: '📜 Menu', callback_data: 'go_menu' }
-          ],
-          [
-            { text: '‼️ Regeln', callback_data: 'go_regeln' }
-          ],
-          [
-            { text: '📢 Mein Kanal', url: 'https://t.me/XCpXcLb52vo2GNi' },
-            { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
-          ],
-          [
-            { text: '📂 Mein Bereich', callback_data: 'mein_bereich' }
-          ]
-        ]
-      }
+  await ctx.editMessageText('🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\nBereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\nWähle unten, wohin dein nächstes Abenteuer geht…', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '📄 Menu', callback_data: 'go_menu' }],
+        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
+        [{ text: '📲 Mein Kanal', url: 'https://t.me/xXcpXLcD5Zvo2GNI' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
+        [{ text: '📂 Mein Bereich', callback_data: 'mein_bereich' }]
+      ]
     }
-  );
+  });
 });
 
 // Admin: Statistik
