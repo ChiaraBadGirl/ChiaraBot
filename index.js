@@ -80,6 +80,116 @@ app.get("/", (req, res) => {
   res.send("✅ ChiaraBot läuft über Webhook!");
 });
 
+// 📌 Schritt 1: PayPal REST-API Route zum Erstellen der Bestellung
+app.post("/create-order", express.json(), async (req, res) => {
+  const { telegramId, productName, price } = req.body;
+
+  const request = new paypal.orders.OrdersCreateRequest();
+  request.prefer("return=representation");
+  request.requestBody({
+    intent: "CAPTURE",
+    purchase_units: [
+      {
+        reference_id: productName || "VIP Pass",
+        amount: {
+          currency_code: "EUR",
+          value: price || "40.00"
+        },
+        custom_id: telegramId // Damit wir den Telegram-User wiederfinden
+      }
+    ],
+    application_context: {
+      return_url: `https://${RAILWAY_DOMAIN}/paypal/success?telegramId=${telegramId}`,
+      cancel_url: `https://${RAILWAY_DOMAIN}/paypal/cancel`
+    }
+  });
+
+  try {
+    const order = await client.execute(request);
+    res.json({ id: order.result.id, links: order.result.links });
+  } catch (err) {
+    console.error("❌ Fehler beim Erstellen der PayPal-Bestellung:", err);
+    res.status(500).send("Fehler bei PayPal-Order");
+  }
+});
+
+// Erfolg mit VIP-Aktivierung
+app.get("/success", async (req, res) => {
+  try {
+    const telegramId = req.query.telegramId;
+    const productName = req.query.productName || "VIP_PASS";
+    const price = parseFloat(req.query.price) || 40;
+
+    if (!telegramId) {
+      return res.status(400).send("Fehler: Telegram-ID fehlt.");
+    }
+
+    // Ablaufdaten für VIP (30 Tage)
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 30);
+
+    // Punkte berechnen
+    const punkte = Math.floor(price * 0.15);
+
+    // 🔹 Supabase Update: Status, Punkte & Produkt
+    const { error } = await supabase
+      .from("users")
+      .update({
+        status: "VIP",
+        status_start: startDate.toISOString().split("T")[0],
+        status_end: endDate.toISOString().split("T")[0],
+        punkte: supabase.rpc("increment_punkte_und_produkt", {
+          userid: telegramId,
+          punkteanzahl: punkte,
+          produktname: productName
+        })
+      })
+      .eq("id", telegramId);
+
+    if (error) {
+      console.error("❌ Fehler bei Supabase Update:", error);
+      return res.send("Zahlung erfolgreich, aber Update fehlgeschlagen. Bitte Support kontaktieren.");
+    }
+
+    console.log(`✅ VIP Pass + ${punkte} Punkte an User ${telegramId}`);
+
+    // 🔹 Telegram Nachricht an User
+    try {
+      await bot.telegram.sendMessage(
+        telegramId,
+        `🏆 *VIP Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
+        { parse_mode: "Markdown" }
+      );
+    } catch (err) {
+      console.error(`⚠️ Konnte Telegram-Nachricht an ${telegramId} nicht senden`, err);
+    }
+
+    // 🔹 Antwort im Browser
+    res.send(`
+      <h1>✅ Zahlung erfolgreich!</h1>
+      <p>VIP Pass wurde freigeschaltet. Du kannst jetzt zurück zu Telegram gehen.</p>
+    `);
+
+  } catch (err) {
+    console.error("❌ Fehler in /success:", err);
+    res.status(500).send("Interner Fehler");
+  }
+});
+
+// Abbruch
+app.get("/cancel", (req, res) => {
+  const { telegramId } = req.query;
+  console.log(`⚠️ Zahlung abgebrochen von User ${telegramId}`);
+  res.send("❌ Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen.");
+});
+
+app.get("/cancel", (req, res) => {
+  const { telegramId } = req.query;
+  console.log(`⚠️ Zahlung abgebrochen von User ${telegramId}`);
+  res.send("❌ Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen.");
+});
+
 // 📌 Debug-Webhook zum Testen von eingehenden Anfragen
 app.post("/paypal/webhook-test", express.json({ type: "*/*" }), (req, res) => {
   console.log("🔍 Webhook-Test erhalten!");
@@ -708,14 +818,12 @@ bot.action('pay_domina', async (ctx) => {
 });
 
 bot.action('preise_vip', async (ctx) => {
-  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-    `&business=sb-1sii637606070@business.example.com` +
-    `&item_name=VIP+Pass` +
-    `&amount=40.00` +
-    `&currency_code=EUR` +
-    `&custom=${ctx.from.id}` + 
-    `&notify_url=https://${RAILWAY_DOMAIN}/paypal/webhook` + 
-    `&return=https://t.me/ChiaraBadGirl`;
+  const telegramId = ctx.from.id;
+  const productName = "VIP_PASS";
+  const price = 40.00;
+
+  // Neuer Link auf deine eigene Express-Route
+  const paypalLink = `https://${RAILWAY_DOMAIN}/create-order?telegramId=${telegramId}&productName=${productName}&price=${price}`;
 
   await ctx.editMessageText(
     '🔥 *Premium & VIP* 🔥\n\n' +
