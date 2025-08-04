@@ -1438,22 +1438,23 @@ bot.action('mein_bereich', async (ctx) => {
 
   // Nachricht mit MarkdownV2
   await ctx.editMessageText(
-  escapeMarkdownV2(`📂 Dein Bereich`) + `\n\n` +
-  `${statusEmoji} *Status:* ${escapeMarkdownV2(user.status || 'Kein')}\n` +
-  `${escapeMarkdownV2(verbleibendText)}\n\n` +
-  `⭐ *Punkte:* ${escapeMarkdownV2(String(user.punkte || 0))}\n` +
-  `🛍 *Gekaufte Produkte:* ${gekaufteProdukte}\n\n` +
-  escapeMarkdownV2(`🔥 Tipp: Löse deine Punkte ein für Rabatte & Boni!`),
-  {
-    parse_mode: 'MarkdownV2',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🛒 Punkte einlösen', callback_data: 'punkte_einloesen' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
+    escapeMarkdownV2(`📂 Dein Bereich`) + `\n\n` +
+    `${statusEmoji} *Status:* ${escapeMarkdownV2(user.status || 'Kein')}\n` +
+    `${escapeMarkdownV2(verbleibendText)}\n\n` +
+    `⭐ *Punkte:* ${escapeMarkdownV2(String(user.punkte || 0))}\n` +
+    `🛍 *Gekaufte Produkte:* ${gekaufteProdukte}\n\n` +
+    escapeMarkdownV2(`🔥 Tipp: Löse deine Punkte ein für Rabatte & Boni!`),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🛒 Punkte einlösen', callback_data: 'punkte_einloesen' }],
+          [{ text: '🔙 Zurück', callback_data: 'back_home' }]
+        ]
+      }
     }
-  }
-);
+  );
+}); // ✅ jetzt geschlossen
 
 // Admin: Statistik
 bot.action('admin_stats', async (ctx) => {
