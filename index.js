@@ -927,4 +927,5 @@ bot.command('broadcast', async (ctx) => {
 });
 
 // 🚀 Bot Start (Webhook läuft automatisch)
+bot.launch();
 console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
