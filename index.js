@@ -57,19 +57,20 @@ async function activatePass(ctx, statusCode, durationDays, backCallback) {
   }
 
   await ctx.editMessageText(
-    `✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, 
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-          [{ text: '💳 Kredit-/Debitkarte • 📱 Apple/Google Pay', url: 'https://sumup.com/deinlink' }],
-          [{ text: '🔙 Zurück', callback_data: backCallback }]
-        ]
-      }
+  `✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, 
+  {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
+        [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink' }],
+        [{ text: '📱 Apple/Google Pay', url: 'https://sumup.com/deinlink' }],
+        [{ text: '🔙 Zurück', callback_data: backCallback }]
+      ]
     }
-  );
-}
+  }
+);
+
 
 // Express App für Webhook
 const app = express();
@@ -557,7 +558,36 @@ bot.action('preis_fullaccess_1m', async (ctx) => {
 });
 
 bot.action('pay_fullaccess_1m', async (ctx) => {
-  await activatePass(ctx, 'FullAccess', 30, 'fullaccess_1m');
+  const telegramId = ctx.from.id;
+
+  // PayPal Link
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Full+Access+Pass` +
+    `&amount=50.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=FULL_ACCESS&price=50` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  // SumUp Links
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
+  await ctx.editMessageText(
+    '💳 *Wähle deine Zahlungsmethode für Full Access Pass:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
+        ]
+      }
+    }
+  );
 });
 
 // 📦 Video Packs
@@ -579,7 +609,7 @@ bot.action('preise_videos', async (ctx) => {
   );
 });
 
-// 5 Videos
+// 🎥 5 Videos
 bot.action('videos_5', async (ctx) => {
   await ctx.editMessageText('🎥 *5 Videos – Lifetime Access*', {
     parse_mode: 'Markdown',
@@ -595,9 +625,35 @@ bot.action('videos_5', async (ctx) => {
 });
 bot.action('info_videos_5', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 5 exklusive Videos für einmalige Zahlung.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_5' }]] } }));
 bot.action('preis_videos_5', async (ctx) => ctx.editMessageText('💰 *Preis*: 50€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_5' }]] } }));
-bot.action('pay_videos_5', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'videos_5' }]] } }));
+bot.action('pay_videos_5', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Video+Pack+5` +
+    `&amount=50.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_5&price=50` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für 5 Videos:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'videos_5' }]
+        ]
+      }
+    }
+  );
+});
 
-// 10 Videos
+// 🎥 10 Videos
 bot.action('videos_10', async (ctx) => {
   await ctx.editMessageText('🎥 *10 Videos – Lifetime Access*', {
     parse_mode: 'Markdown',
@@ -613,9 +669,35 @@ bot.action('videos_10', async (ctx) => {
 });
 bot.action('info_videos_10', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 10 exklusive Videos für einmalige Zahlung.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_10' }]] } }));
 bot.action('preis_videos_10', async (ctx) => ctx.editMessageText('💰 *Preis*: 90€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_10' }]] } }));
-bot.action('pay_videos_10', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'videos_10' }]] } }));
+bot.action('pay_videos_10', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Video+Pack+10` +
+    `&amount=90.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_10&price=90` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für 10 Videos:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'videos_10' }]
+        ]
+      }
+    }
+  );
+});
 
-// 15 Videos
+// 🎥 15 Videos
 bot.action('videos_15', async (ctx) => {
   await ctx.editMessageText('🎥 *15 Videos – Lifetime Access*', {
     parse_mode: 'Markdown',
@@ -631,7 +713,33 @@ bot.action('videos_15', async (ctx) => {
 });
 bot.action('info_videos_15', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 15 exklusive Videos für einmalige Zahlung.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_15' }]] } }));
 bot.action('preis_videos_15', async (ctx) => ctx.editMessageText('💰 *Preis*: 120€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_15' }]] } }));
-bot.action('pay_videos_15', async (ctx) => ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'videos_15' }]] } }));
+bot.action('pay_videos_15', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Video+Pack+15` +
+    `&amount=120.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_15&price=120` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für 15 Videos:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'videos_15' }]
+        ]
+      }
+    }
+  );
+});
 
 // 💬 Sexchat Sessions
 bot.action('preise_sexchat', async (ctx) => {
@@ -704,7 +812,31 @@ bot.action('preise_daddy_bronze', async (ctx) => {
 bot.action('info_daddy_bronze', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 1 Sexchat pro Monat.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
 bot.action('preis_daddy_bronze', async (ctx) => ctx.editMessageText('💰 Preis: 80€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
 bot.action('pay_daddy_bronze', async (ctx) => {
-  await activatePass(ctx, 'Bronze', 30, 'preise_daddy_bronze');
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Daddy+Bronze` +
+    `&amount=80.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_BRONZE&price=80` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Daddy Bronze:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]
+        ]
+      }
+    }
+  );
 });
 
 // 🥈 Daddy Silber
@@ -727,7 +859,31 @@ bot.action('preise_daddy_silber', async (ctx) => {
 bot.action('info_daddy_silber', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 2 Sexchats + Dirty Panty + Privat Chat.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
 bot.action('preis_daddy_silber', async (ctx) => ctx.editMessageText('💰 Preis: 150€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
 bot.action('pay_daddy_silber', async (ctx) => {
-  await activatePass(ctx, 'Silber', 30, 'preise_daddy_silber');
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Daddy+Silber` +
+    `&amount=150.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_SILBER&price=150` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Daddy Silber:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]
+        ]
+      }
+    }
+  );
 });
 
 // 🥇 Daddy Gold
@@ -750,7 +906,31 @@ bot.action('preise_daddy_gold', async (ctx) => {
 bot.action('info_daddy_gold', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 3 Sexchats + Dick Rating + Dirty Panty + Privat Chat + Sextoys.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
 bot.action('preis_daddy_gold', async (ctx) => ctx.editMessageText('💰 Preis: 225€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
 bot.action('pay_daddy_gold', async (ctx) => {
-  await activatePass(ctx, 'Gold', 30, 'preise_daddy_gold');
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Daddy+Gold` +
+    `&amount=225.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_GOLD&price=225` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Daddy Gold:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]
+        ]
+      }
+    }
+  );
 });
 
 // ❤️ Girlfriend / Domina Menü
@@ -766,11 +946,6 @@ bot.action('preise_gf_domina', async (ctx) => {
     }
   });
 });
-bot.action('info_girlfriend', async (ctx) => ctx.editMessageText('ℹ️ Daily Chats (30 Min) + Full Access + Private Nummer.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
-bot.action('preis_girlfriend', async (ctx) => ctx.editMessageText('💰 Preis: 150€/Woche', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]] } }));
-bot.action('pay_girlfriend', async (ctx) => {
-  await activatePass(ctx, 'GF', 7, 'preise_girlfriend');
-});
 
 // 💖 Girlfriend Pass
 bot.action('preise_girlfriend', async (ctx) => {
@@ -780,7 +955,7 @@ bot.action('preise_girlfriend', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_girlfriend' }],
         [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
-        [{ text: '🛒 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
       ]
     }
@@ -806,10 +981,34 @@ bot.action('preis_girlfriend', async (ctx) => {
 });
 
 bot.action('pay_girlfriend', async (ctx) => {
-  await activatePass(ctx, 'GF', 7, 'preise_girlfriend'); // 7 Tage gültig
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Girlfriend+Pass` +
+    `&amount=150.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=GF_PASS&price=150` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Girlfriend Pass:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]
+        ]
+      }
+    }
+  );
 });
 
-// 🖤 Domina / Slave Pass
+// 🖤 Domina Pass
 bot.action('preise_domina', async (ctx) => {
   await ctx.editMessageText('🖤 *Domina / Slave Pass*\n\n🔥 1 Woche Domina-Experience inkl. Sessions & exklusiver Betreuung.', {
     parse_mode: 'Markdown',
@@ -843,7 +1042,31 @@ bot.action('preis_domina', async (ctx) => {
 });
 
 bot.action('pay_domina', async (ctx) => {
-  await activatePass(ctx, 'Domina', 7, 'preise_domina');
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Domina+Pass` +
+    `&amount=150.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DOMINA_PASS&price=150` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Domina Pass:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'preise_domina' }]
+        ]
+      }
+    }
+  );
 });
 
 bot.action('preise_vip', async (ctx) => {
@@ -867,7 +1090,7 @@ bot.action('preise_vip', async (ctx) => {
 bot.action('pay_vip', async (ctx) => {
   const telegramId = ctx.from.id;
 
-  // 🔹 PayPal Link (Sandbox aktuell)
+  // PayPal Link (Sandbox oder Live später anpassen)
   const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
     `&business=sb-1sii637606070@business.example.com` +
     `&item_name=VIP+Pass` +
@@ -877,17 +1100,19 @@ bot.action('pay_vip', async (ctx) => {
     `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIP_PASS&price=40` +
     `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
 
-  // 🔹 Kredit-/Apple Pay (SumUp Link)
-  const sumupLink = `https://meine-sumup-checkout-url.de`; // <-- Hier kommt später dein echter Link rein
+  // SumUp Links (Platzhalter)
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
 
   await ctx.editMessageText(
-    '💳 *Wähle deine Zahlungsmethode für VIP Pass*',
+    '💳 *Wähle deine Zahlungsmethode für VIP Pass:*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal (Sandbox)', url: paypalLink }],
-          [{ text: '💳 Kredit-/Debitkarte • 📱 Apple/Google Pay', url: sumupLink }],
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_vip' }]
         ]
       }
@@ -904,6 +1129,7 @@ bot.action('preis_vip', async (ctx) => ctx.editMessageText(
   '💰 Preis: Snapchat 35€, Telegram 40€', 
   { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_vip' }]] } }
 ));
+
 // 📀 Custom Videos
 bot.action('preise_custom', async (ctx) => {
   await ctx.editMessageText(
@@ -921,14 +1147,16 @@ bot.action('preise_custom', async (ctx) => {
     }
   );
 });
+
+// 3 Min Video
 bot.action('custom_3', async (ctx) => {
-  await ctx.editMessageText('🎥 3 Min Custom Video', {
+  await ctx.editMessageText('🎥 *3 Min Custom Video*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'custom3_info' }],
         [{ text: '💰 Preis', callback_data: 'custom3_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'custom3_pay' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom3' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
@@ -936,17 +1164,43 @@ bot.action('custom_3', async (ctx) => {
 });
 bot.action('custom3_info', async (ctx) => ctx.editMessageText('ℹ️ Individuelles Video (3 Min).', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_3' }]] } }));
 bot.action('custom3_price', async (ctx) => ctx.editMessageText('💰 Preis: 100€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_3' }]] } }));
-bot.action('custom3_pay', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'custom_3' }]] } }));
+bot.action('pay_custom3', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Custom+Video+3Min` +
+    `&amount=100.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM3_PASS&price=100` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für 3 Min Custom Video:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'custom_3' }]
+        ]
+      }
+    }
+  );
+});
 
-// 5 Min Custom
+// 5 Min Video
 bot.action('custom_5', async (ctx) => {
-  await ctx.editMessageText('🎥 5 Min Custom Video', {
+  await ctx.editMessageText('🎥 *5 Min Custom Video*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'custom5_info' }],
         [{ text: '💰 Preis', callback_data: 'custom5_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'custom5_pay' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom5' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
@@ -954,7 +1208,33 @@ bot.action('custom_5', async (ctx) => {
 });
 bot.action('custom5_info', async (ctx) => ctx.editMessageText('ℹ️ Individuelles Video (5 Min).', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_5' }]] } }));
 bot.action('custom5_price', async (ctx) => ctx.editMessageText('💰 Preis: 140€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_5' }]] } }));
-bot.action('custom5_pay', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'custom_5' }]] } }));
+bot.action('pay_custom5', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Custom+Video+5Min` +
+    `&amount=140.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM5_PASS&price=140` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für 5 Min Custom Video:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'custom_5' }]
+        ]
+      }
+    }
+  );
+});
 
 // 🧦 Dirty Panties & Socks
 bot.action('preise_panties', async (ctx) => {
@@ -973,14 +1253,16 @@ bot.action('preise_panties', async (ctx) => {
     }
   );
 });
+
+// Panty
 bot.action('panty_item', async (ctx) => {
-  await ctx.editMessageText('👙 Panty', {
+  await ctx.editMessageText('👙 *Panty*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'panty_info' }],
         [{ text: '💰 Preis', callback_data: 'panty_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'panty_pay' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_panty' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
@@ -988,16 +1270,43 @@ bot.action('panty_item', async (ctx) => {
 });
 bot.action('panty_info', async (ctx) => ctx.editMessageText('ℹ️ Getragene Panty + Foto-Beweis.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'panty_item' }]] } }));
 bot.action('panty_price', async (ctx) => ctx.editMessageText('💰 Preis: 40€ (+20€/Tag extra)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'panty_item' }]] } }));
-bot.action('panty_pay', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'panty_item' }]] } }));
+bot.action('pay_panty', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Panty` +
+    `&amount=40.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=PANTY_PASS&price=40` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Panty:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'panty_item' }]
+        ]
+      }
+    }
+  );
+});
 
+// Socks
 bot.action('socks_item', async (ctx) => {
-  await ctx.editMessageText('🧦 Socks', {
+  await ctx.editMessageText('🧦 *Socks*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'socks_info' }],
         [{ text: '💰 Preis', callback_data: 'socks_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'socks_pay' }],
+        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_socks' }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
@@ -1005,7 +1314,33 @@ bot.action('socks_item', async (ctx) => {
 });
 bot.action('socks_info', async (ctx) => ctx.editMessageText('ℹ️ Getragene Socken + Foto-Beweis.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'socks_item' }]] } }));
 bot.action('socks_price', async (ctx) => ctx.editMessageText('💰 Preis: 30€ (+20€/Tag extra)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'socks_item' }]] } }));
-bot.action('socks_pay', async (ctx) => ctx.editMessageText('💳 Zahlungsmethode:', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],[{ text: '🔙 Zurück', callback_data: 'socks_item' }]] } }));
+bot.action('pay_socks', async (ctx) => {
+  const telegramId = ctx.from.id;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=Socks` +
+    `&amount=30.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=SOCKS_PASS&price=30` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+  await ctx.editMessageText(
+    '💳 *Wähle Zahlungsmethode für Socks:*',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
+          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
+          [{ text: '🔙 Zurück', callback_data: 'socks_item' }]
+        ]
+      }
+    }
+  );
+});
 
 // Regeln
 bot.action('go_regeln', async (ctx) => {
