@@ -132,24 +132,31 @@ app.get("/success", async (req, res) => {
     // Punkte berechnen
     const punkte = Math.floor(price * 0.15);
 
-    // 🔹 Supabase Update: Status, Punkte & Produkt
-    const { error } = await supabase
+    // 🔹 Schritt 1: VIP Status setzen
+    const { error: updateError } = await supabase
       .from("users")
       .update({
         status: "VIP",
         status_start: startDate.toISOString().split("T")[0],
-        status_end: endDate.toISOString().split("T")[0],
-        punkte: supabase.rpc("increment_punkte_und_produkt", {
-          userid: telegramId,
-          punkteanzahl: punkte,
-          produktname: productName
-        })
+        status_end: endDate.toISOString().split("T")[0]
       })
       .eq("id", telegramId);
 
-    if (error) {
-      console.error("❌ Fehler bei Supabase Update:", error);
-      return res.send("Zahlung erfolgreich, aber Update fehlgeschlagen. Bitte Support kontaktieren.");
+    if (updateError) {
+      console.error("❌ Fehler bei Status-Update:", updateError);
+      return res.send("Zahlung erfolgreich, aber Status-Update fehlgeschlagen.");
+    }
+
+    // 🔹 Schritt 2: Punkte & Produkt via RPC hinzufügen
+    const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
+      userid: telegramId,
+      punkteanzahl: punkte,
+      produktname: productName
+    });
+
+    if (rpcError) {
+      console.error("❌ Fehler bei Punkte-Update:", rpcError);
+      return res.send("Zahlung erfolgreich, aber Punkte-Update fehlgeschlagen.");
     }
 
     console.log(`✅ VIP Pass + ${punkte} Punkte an User ${telegramId}`);
@@ -177,17 +184,36 @@ app.get("/success", async (req, res) => {
   }
 });
 
-// Abbruch
-app.get("/cancel", (req, res) => {
-  const { telegramId } = req.query;
-  console.log(`⚠️ Zahlung abgebrochen von User ${telegramId}`);
-  res.send("❌ Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen.");
-});
+// ❌ Abbruch-Handler
+app.get("/cancel", async (req, res) => {
+  try {
+    const telegramId = req.query.telegramId;
 
-app.get("/cancel", (req, res) => {
-  const { telegramId } = req.query;
-  console.log(`⚠️ Zahlung abgebrochen von User ${telegramId}`);
-  res.send("❌ Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen.");
+    console.log(`⚠️ Zahlung abgebrochen von User ${telegramId || "Unbekannt"}`);
+
+    // 🔹 Telegram Nachricht an den User
+    if (telegramId) {
+      try {
+        await bot.telegram.sendMessage(
+          telegramId,
+          `⚠️ *Zahlung abgebrochen!*\n\nKeine Sorge, du kannst jederzeit erneut bezahlen, wenn du deinen VIP Pass aktivieren möchtest.`,
+          { parse_mode: "Markdown" }
+        );
+      } catch (err) {
+        console.error(`⚠️ Konnte Abbruch-Nachricht an ${telegramId} nicht senden`, err);
+      }
+    }
+
+    // 🔹 HTML Antwort im Browser
+    res.send(`
+      <h1>⚠️ Zahlung abgebrochen</h1>
+      <p>Dein VIP Pass wurde nicht freigeschaltet. Du kannst den Kauf jederzeit erneut starten.</p>
+    `);
+
+  } catch (err) {
+    console.error("❌ Fehler in /cancel:", err);
+    res.status(500).send("Interner Fehler");
+  }
 });
 
 // 📌 Debug-Webhook zum Testen von eingehenden Anfragen
@@ -819,11 +845,14 @@ bot.action('pay_domina', async (ctx) => {
 
 bot.action('preise_vip', async (ctx) => {
   const telegramId = ctx.from.id;
-  const productName = "VIP_PASS";
-  const price = 40.00;
-
-  // Neuer Link auf deine eigene Express-Route
-  const paypalLink = `https://${RAILWAY_DOMAIN}/create-order?telegramId=${telegramId}&productName=${productName}&price=${price}`;
+  const paypalLink = `https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=sb-1sii637606070@business.example.com` +
+    `&item_name=VIP+Pass` +
+    `&amount=40.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIP_PASS&price=40` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
 
   await ctx.editMessageText(
     '🔥 *Premium & VIP* 🔥\n\n' +
