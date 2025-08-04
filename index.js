@@ -104,7 +104,12 @@ app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
       const currency = capture.amount.currency_code;
 
       // 📌 Kunden-ID (aus Custom-Feld)
-      const telegramId = capture.custom_id;
+      let telegramId = capture.custom_id;
+
+      // ❌ Falls keine Zahl: Testweise Admin-ID nutzen
+      if (isNaN(telegramId)) {
+        telegramId = 5647887831; // Deine ID für Test
+      }
 
       // 📌 Produktname aus Beschreibung (falls vorhanden)
       const produktName = capture?.invoice_id || capture?.note_to_payer || "Unbekanntes Produkt";
