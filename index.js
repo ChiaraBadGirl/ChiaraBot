@@ -118,30 +118,40 @@ app.post("/create-order", express.json(), async (req, res) => {
   }
 });
 
-// Erfolg mit VIP-Aktivierung
+// Erfolg mit Pass-Aktivierung (universell für alle Produkte)
 app.get("/success", async (req, res) => {
   try {
     const telegramId = req.query.telegramId;
-    const productName = req.query.productName || "VIP_PASS";
-    const price = parseFloat(req.query.price) || 40;
+    const productName = req.query.productName || "UNBEKANNT";
+    const price = parseFloat(req.query.price) || 0;
 
     if (!telegramId) {
-      return res.status(400).send("Fehler: Telegram-ID fehlt.");
+      return res.status(400).send("❌ Fehler: Telegram-ID fehlt.");
     }
 
-    // Ablaufdaten für VIP (30 Tage)
+    // Laufzeit bestimmen (Standard: 30 Tage für Pässe)
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setDate(startDate.getDate() + 30);
+    endDate.setDate(startDate.getDate() + 30); // ⬅️ Hier Standard-Laufzeit
 
-    // Punkte berechnen
+    // Punkte berechnen (15 % vom Preis)
     const punkte = Math.floor(price * 0.15);
 
-    // 🔹 Schritt 1: VIP Status setzen
+    // Status Code aus Produktnamen ableiten
+    let statusCode = productName.toUpperCase();
+    if (statusCode.includes("FULL")) statusCode = "FULL";
+    if (statusCode.includes("VIP")) statusCode = "VIP";
+    if (statusCode.includes("DADDY_BRONZE")) statusCode = "DADDY_BRONZE";
+    if (statusCode.includes("DADDY_SILBER")) statusCode = "DADDY_SILBER";
+    if (statusCode.includes("DADDY_GOLD")) statusCode = "DADDY_GOLD";
+    if (statusCode.includes("GF_PASS")) statusCode = "GF";
+    if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
+
+    // 🔹 Status & Laufzeit speichern
     const { error: updateError } = await supabase
       .from("users")
       .update({
-        status: "VIP",
+        status: statusCode,
         status_start: startDate.toISOString().split("T")[0],
         status_end: endDate.toISOString().split("T")[0]
       })
@@ -152,7 +162,7 @@ app.get("/success", async (req, res) => {
       return res.send("Zahlung erfolgreich, aber Status-Update fehlgeschlagen.");
     }
 
-    // 🔹 Schritt 2: Punkte & Produkt via RPC hinzufügen
+    // 🔹 Punkte & Produkt speichern
     const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
       userid: telegramId,
       punkteanzahl: punkte,
@@ -164,13 +174,13 @@ app.get("/success", async (req, res) => {
       return res.send("Zahlung erfolgreich, aber Punkte-Update fehlgeschlagen.");
     }
 
-    console.log(`✅ VIP Pass + ${punkte} Punkte an User ${telegramId}`);
+    console.log(`✅ ${statusCode} aktiviert + ${punkte} Punkte an User ${telegramId}`);
 
     // 🔹 Telegram Nachricht an User
     try {
       await bot.telegram.sendMessage(
         telegramId,
-        `🏆 *VIP Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
+        `🏆 *${statusCode} aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
         { parse_mode: "Markdown" }
       );
     } catch (err) {
@@ -180,7 +190,7 @@ app.get("/success", async (req, res) => {
     // 🔹 Antwort im Browser
     res.send(`
       <h1>✅ Zahlung erfolgreich!</h1>
-      <p>VIP Pass wurde freigeschaltet. Du kannst jetzt zurück zu Telegram gehen.</p>
+      <p>${statusCode} wurde freigeschaltet. Du kannst jetzt zurück zu Telegram gehen.</p>
     `);
 
   } catch (err) {
