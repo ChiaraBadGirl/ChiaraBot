@@ -104,10 +104,11 @@ bot.start(async (ctx) => {
   };
   await saveUser(user);
 
-  await ctx.reply(
-    `🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n` +
-    `Bereit für *exklusiven Zugang*, geheime Inhalte und *private Erlebnisse*? 😈\n` +
-    `Wähle unten, wohin dein nächstes Abenteuer geht ⬇️`,
+  await ctx.editMessageText(
+    '👑 *Willkommen zurück bei ChiaraBadGirlsBot!* 👑\n\n' +
+    '💋 *Dein persönlicher VIP-Bereich wartet auf dich.*\n' +
+    '🔥 Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n' +
+    '👇 *Wähle im Menü unten:*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
