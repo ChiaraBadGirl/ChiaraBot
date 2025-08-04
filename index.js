@@ -57,19 +57,20 @@ async function activatePass(ctx, statusCode, durationDays, backCallback) {
   }
 
   await ctx.editMessageText(
-  `✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, 
-  {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink' }],
-        [{ text: '📱 Apple/Google Pay', url: 'https://sumup.com/deinlink' }],
-        [{ text: '🔙 Zurück', callback_data: backCallback }]
-      ]
+    `✅ *${statusCode} Pass aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString('de-DE')}`, 
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
+          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink' }],
+          [{ text: '📱 Apple/Google Pay', url: 'https://sumup.com/deinlink' }],
+          [{ text: '🔙 Zurück', callback_data: backCallback }]
+        ]
+      }
     }
-  }
-);
+  );
+} // ✅ Funktion sauber geschlossen
 
 
 // Express App für Webhook
