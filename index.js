@@ -1,14 +1,25 @@
 import express from "express";
 import { Telegraf, Markup } from "telegraf";
 import { supabase } from "./supabaseClient.js";
+import paypal from '@paypal/checkout-server-sdk';
 
 // Variablen aus Railway
 const BOT_TOKEN = process.env.BOT_TOKEN || "DEIN_BOT_TOKEN";
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "DEIN_SANDBOX_CLIENT_ID";
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "DEIN_SANDBOX_SECRET";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
 
+// 🔹 PayPal Umgebung (Sandbox)
+let environment = new paypal.core.SandboxEnvironment(
+  PAYPAL_CLIENT_ID,
+  PAYPAL_CLIENT_SECRET
+);
+let client = new paypal.core.PayPalHttpClient(environment);
+
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
+
 
 // 🔹 Globaler Fehlerfänger mit User & Callback Info
 bot.catch((err, ctx) => {
@@ -67,6 +78,58 @@ bot.telegram.setWebhook(`https://${RAILWAY_DOMAIN}/webhook/${WEBHOOK_SECRET}`);
 // Test Endpoint
 app.get("/", (req, res) => {
   res.send("✅ ChiaraBot läuft über Webhook!");
+});
+
+// 📌 PayPal Webhook Route
+app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
+  try {
+    console.log("✅ PayPal Webhook empfangen:", req.body);
+
+    const event = req.body;
+
+    // Wir reagieren nur auf erfolgreiche Zahlungen
+    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      const capture = event.resource;
+
+      // 💰 Betrag & Währung
+      const amount = parseFloat(capture.amount.value);
+      const currency = capture.amount.currency_code;
+
+      // 📌 Kunden-ID (aus Custom-Feld)
+      const telegramId = capture.custom_id;
+
+      // 📌 Produktname aus Beschreibung (falls vorhanden)
+      const produktName = capture?.invoice_id || capture?.note_to_payer || "Unbekanntes Produkt";
+
+      console.log(`💵 Zahlung erfolgreich: ${amount} ${currency} von User ${telegramId} für Produkt: ${produktName}`);
+
+      // 🔢 Punkteberechnung (15 % vom Betrag)
+      const punkte = Math.floor(amount * 0.15);
+
+      // 🔄 Punkte & Produkt in Supabase updaten
+      const { error } = await supabase
+        .rpc('increment_punkte_und_produkt', {
+          userid: telegramId,
+          punkteanzahl: punkte,
+          produktname: produktName
+        });
+
+      if (error) {
+        console.error("❌ Fehler beim Update:", error);
+      } else {
+        console.log(`✅ ${punkte} Punkte gutgeschrieben + Produkt '${produktName}' an User ${telegramId}`);
+      }
+
+      // ✅ Erfolg an PayPal zurückmelden
+      res.status(200).send("OK");
+    } else {
+      res.status(200).send("IGNORED");
+    }
+
+  } catch (err) {
+    console.error("❌ Fehler im PayPal Webhook:", err);
+    res.status(500).send("ERROR");
+  }
 });
 
 // Server starten
