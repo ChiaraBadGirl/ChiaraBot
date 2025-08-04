@@ -10,6 +10,11 @@ const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "DEIN_SANDBOX_S
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
 
+// 🔹 Funktion zum Escapen von MarkdownV2-Zeichen
+function mdEscape(text) {
+  if (!text) return '';
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+}
 // 🔹 PayPal Umgebung (Sandbox)
 let environment = new paypal.core.SandboxEnvironment(
   PAYPAL_CLIENT_ID,
