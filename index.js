@@ -95,40 +95,34 @@ async function saveUser(user) {
   
 // 🔹 Gemeinsame Funktion für Start/Home-Menü
 async function sendHomeMenu(ctx) {
-  await ctx.editMessageText?.(
+  const homeText = 
     '🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n' +
     'Bereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\n' +
-    'Wähle unten, wohin dein nächstes Abenteuer geht…',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '🧾 Menu', callback_data: 'go_menu' }],
-          [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-          [{ text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-          [{ text: "👤 Mein Bereich", callback_data: "mein_bereich" }]
-        ]
-      }
+    'Wähle unten, wohin dein nächstes Abenteuer geht…';
+
+  const keyboard = {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '🧾 Menu', callback_data: 'go_menu' }],
+        [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
+        [{ text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
+        [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
+      ]
     }
-  ) || ctx.reply( // Falls noch keine Message zum Editieren existiert
-    '🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n' +
-    'Bereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\n' +
-    'Wähle unten, wohin dein nächstes Abenteuer geht…',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '🧾 Menu', callback_data: 'go_menu' }],
-          [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-          [{ text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-          [{ text: "👤 Mein Bereich", callback_data: "mein_bereich" }]
-        ]
-      }
-    }
-  );
+  };
+
+  // Prüfen, ob der Aufruf aus einem Inline-Button kommt oder normal (/start)
+  if (ctx.updateType === 'callback_query') {
+    return ctx.editMessageText(homeText, keyboard).catch(() => {
+      return ctx.reply(homeText, keyboard); // Fallback, falls Edit nicht geht
+    });
+  } else {
+    return ctx.reply(homeText, keyboard);
+  }
 }
 
-// 🔹 /start ruft nur noch die Funktion auf
+// 🔹 /start Befehl
 bot.start(async (ctx) => {
   const user = {
     id: ctx.from.id,
@@ -141,7 +135,7 @@ bot.start(async (ctx) => {
   await sendHomeMenu(ctx);
 });
 
-// 🔹 back_home ruft dieselbe Funktion auf
+// 🔹 back_home Action
 bot.action('back_home', async (ctx) => {
   await sendHomeMenu(ctx);
 });
