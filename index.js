@@ -1,3 +1,25 @@
+
+async function sendHomeMenu(ctx) {
+  await ctx.editMessageText('🔥 *Willkommen zurück bei ChiaraBadGirlsBot!* 🔥\n\n👑 Dein persönlicher VIP-Bereich wartet auf dich.\n✨ Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n📌 *Wähle im Menü unten:*', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'ℹ️Info', callback_data: 'go_info' },
+          { text: '🧾Menu', callback_data: 'go_menu' }
+        ],
+        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
+        [
+          { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
+          { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
+        ],
+        [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
+      ]
+    }
+  });
+}
+
+
 import express from "express";
 import { Telegraf, Markup } from "telegraf";
 import { supabase } from "./supabaseClient.js";
@@ -95,34 +117,36 @@ async function saveUser(user) {
 
 // Start
 bot.start(async (ctx) => {
-  const user = {
-    id: ctx.from.id,
-    username: ctx.from.username || null,
-    first_name: ctx.from.first_name || null,
-    last_name: ctx.from.last_name || null,
-    language_code: ctx.from.language_code || null
-  };
-  await saveUser(user);
+  await saveUser({ 
+    id: ctx.from.id, 
+    username: ctx.from.username || null, 
+    first_name: ctx.from.first_name || null, 
+    last_name: ctx.from.last_name || null, 
+    language_code: ctx.from.language_code || null 
+  });
+  await ctx.reply('🔥 *Willkommen zurück bei ChiaraBadGirlsBot!* 🔥
 
-  await ctx.reply('🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\nBereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\nWähle unten, wohin dein nächstes Abenteuer geht…', {
+👑 Dein persönlicher VIP-Bereich wartet auf dich.
+✨ Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.
+
+📌 *Wähle im Menü unten:*', {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
         [
-          { text: 'ℹ️ Info', callback_data: 'go_info' },
-          { text: '🧾 Menu', callback_data: 'go_menu' }
+          { text: 'ℹ️Info', callback_data: 'go_info' },
+          { text: '🧾Menu', callback_data: 'go_menu' }
         ],
-        [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
+        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
         [
-          { text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
-          { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
+          { text: '📲Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' },
+          { text: '💬Schreib mir', url: 'https://t.me/ChiaraBadGirl' }
         ],
-        [{ text: "👤 Mein Bereich", callback_data: "mein_bereich" }],
-        [
-        ]
+        [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
       ]
     }
   });
+});
 });
 
 // Admin Menü
@@ -806,17 +830,8 @@ bot.action('mein_bereich', async (ctx) => {
 
 // Back to home
 bot.action('back_home', async (ctx) => {
-  await ctx.editMessageText('🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\nBereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\nWähle unten, wohin dein nächstes Abenteuer geht…', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '📄 Menu', callback_data: 'go_menu' }],
-        [{ text: '‼️Regeln', callback_data: 'go_regeln' }],
-        [{ text: '📲 Mein Kanal', url: 'https://t.me/xXcpXLcD5Zvo2GNI' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-        [{ text: '📂 Mein Bereich', callback_data: 'mein_bereich' }]
-      ]
-    }
-  });
+  await sendHomeMenu(ctx);
+});
 });
 
 // Admin: Statistik
