@@ -857,11 +857,11 @@ bot.action('admin_broadcast_info', async (ctx) => {
   );
 });
 
-// Admin: Menü zurück
-bot.action('admin_menu', async (ctx) => {
-  if (ctx.from.id !== 5647887831) return;
+// 🔹 Gemeinsame Funktion für Admin-Menü
+async function sendAdminMenu(ctx) {
+  const adminText = '🛠️ *Admin-Menü*';
 
-  await ctx.editMessageText('🛠️ *Admin-Menü*', {
+  const keyboard = {
     parse_mode: 'Markdown',
     reply_markup: {
       inline_keyboard: [
@@ -870,7 +870,29 @@ bot.action('admin_menu', async (ctx) => {
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
-  });
+  };
+
+  if (ctx.updateType === 'callback_query') {
+    return ctx.editMessageText(adminText, keyboard).catch(() => {
+      return ctx.reply(adminText, keyboard);
+    });
+  } else {
+    return ctx.reply(adminText, keyboard);
+  }
+}
+
+// 🔹 Admin Command
+bot.command('admin', async (ctx) => {
+  if (ctx.from.id !== 5647887831) {
+    return ctx.reply('❌ Nur der Admin darf diesen Befehl verwenden.');
+  }
+  await sendAdminMenu(ctx);
+});
+
+// 🔹 Admin-Menü Callback
+bot.action('admin_menu', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return;
+  await sendAdminMenu(ctx);
 });
 
 // Broadcast-Befehl
