@@ -926,5 +926,5 @@ bot.command('broadcast', async (ctx) => {
   ctx.reply(`📨 Nachricht wurde an ${count} Nutzer gesendet.`);
 });
 
-bot.launch();
+// 🚀 Bot Start (Webhook läuft automatisch)
 console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
