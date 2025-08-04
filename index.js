@@ -10,6 +10,19 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.ap
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
 
+// 🔹 Globaler Fehlerfänger mit User & Callback Info
+bot.catch((err, ctx) => {
+  const user = ctx?.from?.username
+    ? `@${ctx.from.username}`
+    : ctx?.from?.id || "Unbekannt";
+  const action = ctx?.update?.callback_query?.data || "Keine Action";
+
+  console.error(
+    `❌ Fehler bei ${ctx.updateType} | User: ${user} | Action: ${action}\n`,
+    err
+  );
+});
+
 // 🔹 Funktion hier platzieren:
 async function activatePass(ctx, statusCode, durationDays, backCallback) {
   const userId = ctx.from.id;
