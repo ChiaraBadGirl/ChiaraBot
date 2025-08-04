@@ -92,19 +92,8 @@ async function saveUser(user) {
     console.log('✅ User gespeichert:', id);
   }
 }
-
-// Start
-bot.start(async (ctx) => {
-  const user = {
-    id: ctx.from.id,
-    username: ctx.from.username || null,
-    first_name: ctx.from.first_name || null,
-    last_name: ctx.from.last_name || null,
-    language_code: ctx.from.language_code || null
-  };
-  await saveUser(user);
-
-  // 🔹 Gemeinsame Funktion für Start/Home-Menü
+  
+// 🔹 Gemeinsame Funktion für Start/Home-Menü
 async function sendHomeMenu(ctx) {
   await ctx.editMessageText?.(
     '🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n' +
@@ -926,6 +915,5 @@ bot.command('broadcast', async (ctx) => {
   ctx.reply(`📨 Nachricht wurde an ${count} Nutzer gesendet.`);
 });
 
-// 🚀 Bot Start (Webhook läuft automatisch)
-bot.launch();
+// 🚀 Bot Start – Webhook only
 console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
