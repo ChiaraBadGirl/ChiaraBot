@@ -118,7 +118,7 @@ app.post("/create-order", express.json(), async (req, res) => {
   }
 });
 
-// Erfolg mit Pass-Aktivierung (universell für alle Produkte)
+// Erfolg mit Pass-Aktivierung (universell für alle Produkte mit individueller Laufzeit)
 app.get("/success", async (req, res) => {
   try {
     const telegramId = req.query.telegramId;
@@ -129,15 +129,25 @@ app.get("/success", async (req, res) => {
       return res.status(400).send("❌ Fehler: Telegram-ID fehlt.");
     }
 
-    // Laufzeit bestimmen (Standard: 30 Tage für Pässe)
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + 30); // ⬅️ Hier Standard-Laufzeit
+    // 🔹 Laufzeit-Mapping (Tage pro Produkt)
+    const laufzeitMapping = {
+      VIP_PASS: 30,
+      FULL_ACCESS: 30,
+      DADDY_BRONZE: 30,
+      DADDY_SILBER: 30,
+      DADDY_GOLD: 30,
+      GF_PASS: 7,
+      DOMINA_PASS: 7,
+      VIDEO_PACK_5: 9999,   // Lifetime (9999 Tage als Platzhalter)
+      VIDEO_PACK_10: 9999,  // Lifetime
+      VIDEO_PACK_15: 9999,  // Lifetime
+      CUSTOM3_PASS: 9999,
+      CUSTOM5_PASS: 9999,
+      PANTY_PASS: 0,        // Kein Ablaufdatum
+      SOCKS_PASS: 0         // Kein Ablaufdatum
+    };
 
-    // Punkte berechnen (15 % vom Preis)
-    const punkte = Math.floor(price * 0.15);
-
-    // Status Code aus Produktnamen ableiten
+    // 🔹 Status-Code bestimmen
     let statusCode = productName.toUpperCase();
     if (statusCode.includes("FULL")) statusCode = "FULL";
     if (statusCode.includes("VIP")) statusCode = "VIP";
@@ -147,7 +157,24 @@ app.get("/success", async (req, res) => {
     if (statusCode.includes("GF_PASS")) statusCode = "GF";
     if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
 
-    // 🔹 Status & Laufzeit speichern
+    // 🔹 Laufzeit aus Mapping holen (Fallback: 30 Tage)
+    const durationDays = laufzeitMapping[productName.toUpperCase()] || 30;
+
+    // 🔹 Start & Enddatum berechnen
+    const startDate = new Date();
+    const endDate = new Date();
+    if (durationDays > 0 && durationDays < 9999) {
+      endDate.setDate(startDate.getDate() + durationDays);
+    } else if (durationDays >= 9999) {
+      endDate.setFullYear(startDate.getFullYear() + 50); // Lifetime
+    } else {
+      endDate.setDate(startDate.getDate()); // Kein Ablaufdatum (z.B. Panty)
+    }
+
+    // 🔹 Punkte berechnen (15 % vom Preis)
+    const punkte = Math.floor(price * 0.15);
+
+    // 🔹 Status & Laufzeit in DB speichern
     const { error: updateError } = await supabase
       .from("users")
       .update({
@@ -174,13 +201,17 @@ app.get("/success", async (req, res) => {
       return res.send("Zahlung erfolgreich, aber Punkte-Update fehlgeschlagen.");
     }
 
-    console.log(`✅ ${statusCode} aktiviert + ${punkte} Punkte an User ${telegramId}`);
+    console.log(`✅ ${statusCode} aktiviert (${durationDays} Tage) + ${punkte} Punkte an User ${telegramId}`);
 
     // 🔹 Telegram Nachricht an User
     try {
+      const ablaufText = durationDays > 0 && durationDays < 9999
+        ? `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`
+        : (durationDays >= 9999 ? `♾️ Lifetime Access` : `⏳ Kein Ablaufdatum`);
+      
       await bot.telegram.sendMessage(
         telegramId,
-        `🏆 *${statusCode} aktiviert!*\n\n📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
+        `🏆 *${statusCode} aktiviert!*\n\n${ablaufText}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
         { parse_mode: "Markdown" }
       );
     } catch (err) {
@@ -190,7 +221,8 @@ app.get("/success", async (req, res) => {
     // 🔹 Antwort im Browser
     res.send(`
       <h1>✅ Zahlung erfolgreich!</h1>
-      <p>${statusCode} wurde freigeschaltet. Du kannst jetzt zurück zu Telegram gehen.</p>
+      <p>${statusCode} wurde freigeschaltet (${durationDays > 0 && durationDays < 9999 ? durationDays + " Tage" : "Lifetime/ohne Ablauf"}).</p>
+      <p>Du kannst jetzt zurück zu Telegram gehen.</p>
     `);
 
   } catch (err) {
@@ -378,24 +410,6 @@ bot.start(async (ctx) => {
 // 🔹 back_home Action
 bot.action('back_home', async (ctx) => {
   await sendHomeMenu(ctx);
-});
-
-// Admin Menü
-bot.command('admin', async (ctx) => {
-  if (ctx.from.id !== 5647887831) {
-    return ctx.reply('❌ Nur der Admin darf diesen Befehl verwenden.');
-  }
-
-  await ctx.reply('🛠️ *Admin-Menü*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
-        [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
-    }
-  });
 });
 
 // Info-Menü
@@ -1401,10 +1415,21 @@ bot.action('mein_bereich', async (ctx) => {
     case 'VIP': statusEmoji = '🏆'; break;
   }
 
-  // Ablaufdatum & Countdown
+  // Ablauf-Text berechnen
   const today = new Date();
   const endDate = new Date(user.status_end);
-  const diffDays = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+  let verbleibendText = '';
+  let diffDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+
+  if (!user.status_end || isNaN(endDate)) {
+    verbleibendText = '⏳ Kein Ablaufdatum';
+  } else if (diffDays >= 3650) { // 10 Jahre als Lifetime-Anzeige
+    verbleibendText = '♾️ Lifetime Access';
+  } else if (diffDays > 0) {
+    verbleibendText = `⏳ Verbleibend: ${diffDays} Tage\n📅 Ende: ${user.status_end}`;
+  } else {
+    verbleibendText = '⚠️ Abgelaufen';
+  }
 
   // Produkte sicher escapen
   let gekaufteProdukte = (user.produkte && user.produkte.length > 0)
@@ -1415,9 +1440,7 @@ bot.action('mein_bereich', async (ctx) => {
   await ctx.editMessageText(
     escapeMarkdownV2(`📂 Dein Bereich`) + `\n\n` +
     `${statusEmoji} *Status:* ${escapeMarkdownV2(user.status || 'Kein')}\n` +
-    `⏳ *Verbleibend:* ${diffDays} Tage\n` +
-    `🗓 *Start:* ${escapeMarkdownV2(user.status_start || '-')}\n` +
-    `🛑 *Ende:* ${escapeMarkdownV2(user.status_end || '-')}\n\n` +
+    `${verbleibendText}\n\n` +
     `⭐ *Punkte:* ${user.punkte || 0}\n` +
     `🛍 *Gekaufte Produkte:* ${gekaufteProdukte}\n\n` +
     escapeMarkdownV2(`🔥 Tipp: Löse deine Punkte ein für Rabatte & Boni!`),
