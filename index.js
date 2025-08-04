@@ -96,15 +96,10 @@ async function saveUser(user) {
 // 📌 Funktion für Start & Home Menü
 async function sendHomeMenu(ctx) {
   await ctx.editMessageText(
-    '🔥 *Willkommen zurück bei ChiaraBadGirlsBot!* 🔥
-
-' +
-      '👑 Dein persönlicher VIP-Bereich wartet auf dich.
-' +
-      '✨ Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.
-
-' +
-      '📌 *Wähle im Menü unten:*',
+    '🔥 *Willkommen zurück bei ChiaraBadGirlsBot!* 🔥\n\n' +
+    '👑 Dein persönlicher VIP-Bereich wartet auf dich.\n' +
+    '✨ Entdecke neue Inhalte, sichere dir Angebote und checke deinen Status.\n\n' +
+    '📌 *Wähle im Menü unten:*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
