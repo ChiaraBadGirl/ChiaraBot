@@ -80,6 +80,14 @@ app.get("/", (req, res) => {
   res.send("✅ ChiaraBot läuft über Webhook!");
 });
 
+// 📌 Debug-Webhook zum Testen von eingehenden Anfragen
+app.post("/paypal/webhook-test", express.json({ type: "*/*" }), (req, res) => {
+  console.log("🔍 Webhook-Test erhalten!");
+  console.log("Headers:", req.headers);
+  console.log("Body:", JSON.stringify(req.body, null, 2));
+  res.status(200).send("Webhook-Test OK");
+});
+
 // 📌 PayPal Webhook Route
 app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
   try {
