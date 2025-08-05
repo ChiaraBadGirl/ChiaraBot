@@ -127,7 +127,6 @@ app.post("/create-order", express.json(), async (req, res) => {
 // Erfolg mit Pass-Aktivierung (universell für alle Produkte mit individueller Laufzeit)
 app.get("/success", async (req, res) => {
   try {
-    // Debug Log
     console.log("🔍 /success Query Params:", req.query);
 
     const telegramId = req.query.telegramId;
@@ -138,25 +137,17 @@ app.get("/success", async (req, res) => {
       return res.status(400).send("❌ Fehler: Telegram-ID fehlt.");
     }
 
-    // 🔹 Laufzeit-Mapping (Tage pro Produkt)
+    // Laufzeit-Mapping
     const laufzeitMapping = {
-      VIP_PASS: 30,
-      FULL_ACCESS: 30,
-      DADDY_BRONZE: 30,
-      DADDY_SILBER: 30,
-      DADDY_GOLD: 30,
-      GF_PASS: 7,
-      DOMINA_PASS: 7,
-      VIDEO_PACK_5: 9999,   // Lifetime (9999 Tage als Platzhalter)
-      VIDEO_PACK_10: 9999,  // Lifetime
-      VIDEO_PACK_15: 9999,  // Lifetime
-      CUSTOM3_PASS: 9999,
-      CUSTOM5_PASS: 9999,
-      PANTY_PASS: 0,        // Kein Ablaufdatum
-      SOCKS_PASS: 0         // Kein Ablaufdatum
+      VIP_PASS: 30, FULL_ACCESS: 30,
+      DADDY_BRONZE: 30, DADDY_SILBER: 30, DADDY_GOLD: 30,
+      GF_PASS: 7, DOMINA_PASS: 7,
+      VIDEO_PACK_5: 9999, VIDEO_PACK_10: 9999, VIDEO_PACK_15: 9999,
+      CUSTOM3_PASS: 9999, CUSTOM5_PASS: 9999,
+      PANTY_PASS: 0, SOCKS_PASS: 0,
+      TEST_PAYMENT: 30 // Testzahlung simuliert 30 Tage
     };
 
-    // 🔹 Status-Code bestimmen
     let statusCode = productName.toUpperCase();
     if (statusCode.includes("FULL")) statusCode = "FULL";
     if (statusCode.includes("VIP")) statusCode = "VIP";
@@ -165,25 +156,24 @@ app.get("/success", async (req, res) => {
     if (statusCode.includes("DADDY_GOLD")) statusCode = "DADDY_GOLD";
     if (statusCode.includes("GF_PASS")) statusCode = "GF";
     if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
+    if (statusCode.includes("TEST_PAYMENT")) statusCode = "TEST_PAYMENT";
 
-    // 🔹 Laufzeit aus Mapping holen (Fallback: 30 Tage)
     const durationDays = laufzeitMapping[productName.toUpperCase()] || 30;
 
-    // 🔹 Start & Enddatum berechnen
+    // Start- und Enddatum berechnen
     const startDate = new Date();
     const endDate = new Date();
     if (durationDays > 0 && durationDays < 9999) {
       endDate.setDate(startDate.getDate() + durationDays);
     } else if (durationDays >= 9999) {
-      endDate.setFullYear(startDate.getFullYear() + 50); // Lifetime
+      endDate.setFullYear(startDate.getFullYear() + 50);
     } else {
-      endDate.setDate(startDate.getDate()); // Kein Ablaufdatum (z.B. Panty)
+      endDate.setDate(startDate.getDate());
     }
 
-    // 🔹 Punkte berechnen (15 % vom Preis)
     const punkte = Math.floor(price * 0.15);
 
-    // 🔹 Status nur updaten, wenn es KEIN Test Payment ist
+    // Status nur ändern, wenn KEIN Test Payment
     if (statusCode !== "TEST_PAYMENT") {
       const { error: updateError } = await supabase
         .from("users")
@@ -194,49 +184,38 @@ app.get("/success", async (req, res) => {
         })
         .eq("id", telegramId);
 
-      if (updateError) {
-        console.error("❌ Fehler bei Status-Update:", updateError);
-        return res.send("Zahlung erfolgreich, aber Status-Update fehlgeschlagen.");
-      }
+      if (updateError) console.error("❌ Fehler bei Status-Update:", updateError);
     } else {
-      console.log("🧪 Test Payment erkannt – Status wird nicht geändert.");
+      console.log("🧪 Test Payment – Status bleibt unverändert.");
     }
 
-    // 🔹 Punkte & Produkt speichern
+    // Punkte & Produkt trotzdem speichern
     const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
       userid: telegramId,
       punkteanzahl: punkte,
       produktname: productName
     });
 
-    if (rpcError) {
-      console.error("❌ Fehler bei Punkte-Update:", rpcError);
-      return res.send("Zahlung erfolgreich, aber Punkte-Update fehlgeschlagen.");
-    }
+    if (rpcError) console.error("❌ Fehler bei Punkte-Update:", rpcError);
 
     console.log(`✅ ${statusCode} verarbeitet (${durationDays} Tage) + ${punkte} Punkte an User ${telegramId}`);
 
-    // 🔹 Telegram Nachricht an User
+    // Telegram Nachricht
     try {
       const ablaufText = durationDays > 0 && durationDays < 9999
         ? `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`
         : (durationDays >= 9999 ? `♾️ Lifetime Access` : `⏳ Kein Ablaufdatum`);
-      
+
       await bot.telegram.sendMessage(
         telegramId,
         `🏆 *${statusCode} erfolgreich!*\n\n${ablaufText}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
         { parse_mode: "Markdown" }
       );
     } catch (err) {
-      console.error(`⚠️ Konnte Telegram-Nachricht an ${telegramId} nicht senden`, err);
+      console.error(`⚠️ Konnte Nachricht nicht senden an ${telegramId}`, err);
     }
 
-    // 🔹 Antwort im Browser
-    res.send(`
-      <h1>✅ Zahlung erfolgreich!</h1>
-      <p>${statusCode} wurde verarbeitet (${durationDays > 0 && durationDays < 9999 ? durationDays + " Tage" : "Lifetime/ohne Ablauf"}).</p>
-      <p>Du kannst jetzt zurück zu Telegram gehen.</p>
-    `);
+    res.send(`<h1>✅ Zahlung erfolgreich!</h1><p>${statusCode} verarbeitet.</p>`);
 
   } catch (err) {
     console.error("❌ Fehler in /success:", err);
