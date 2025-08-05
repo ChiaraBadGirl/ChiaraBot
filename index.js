@@ -695,9 +695,6 @@ bot.action('preis_fullaccess_1m', async (ctx) => {
   });
 });
 
-bot.action('pay_fullaccess_1m', async (ctx) => {
-  const telegramId = ctx.from.id;
-
 // 🔹 PayPal Link – Full Access Pass (1 Monat)
 bot.action('pay_fullaccess_1m', async (ctx) => {
   const telegramId = ctx.from.id;
@@ -767,8 +764,6 @@ bot.action('videos_5', async (ctx) => {
 });
 bot.action('info_videos_5', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 5 exklusive Videos für einmalige Zahlung.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_5' }]] } }));
 bot.action('preis_videos_5', async (ctx) => ctx.editMessageText('💰 *Preis*: 50€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_5' }]] } }));
-bot.action('pay_videos_5', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – Video Pack 5 (Lifetime)
 bot.action('pay_videos_5', async (ctx) => {
@@ -820,8 +815,6 @@ bot.action('videos_10', async (ctx) => {
 });
 bot.action('info_videos_10', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 10 exklusive Videos für einmalige Zahlung.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_10' }]] } }));
 bot.action('preis_videos_10', async (ctx) => ctx.editMessageText('💰 *Preis*: 90€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_10' }]] } }));
-bot.action('pay_videos_10', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – Video Pack 10 (Lifetime)
 bot.action('pay_videos_10', async (ctx) => {
@@ -873,8 +866,6 @@ bot.action('videos_15', async (ctx) => {
 });
 bot.action('info_videos_15', async (ctx) => ctx.editMessageText('ℹ️ *Info*: 15 exklusive Videos für einmalige Zahlung.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_15' }]] } }));
 bot.action('preis_videos_15', async (ctx) => ctx.editMessageText('💰 *Preis*: 120€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'videos_15' }]] } }));
-bot.action('pay_videos_15', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – Video Pack 15 (Lifetime)
 bot.action('pay_videos_15', async (ctx) => {
@@ -980,8 +971,6 @@ bot.action('preise_daddy_bronze', async (ctx) => {
 });
 bot.action('info_daddy_bronze', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 1 Sexchat pro Monat.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
 bot.action('preis_daddy_bronze', async (ctx) => ctx.editMessageText('💰 Preis: 80€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]] } }));
-bot.action('pay_daddy_bronze', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – Daddy Bronze
 bot.action('pay_daddy_bronze', async (ctx) => {
@@ -1034,8 +1023,6 @@ bot.action('preise_daddy_silber', async (ctx) => {
 });
 bot.action('info_daddy_silber', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 2 Sexchats + Dirty Panty + Privat Chat.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
 bot.action('preis_daddy_silber', async (ctx) => ctx.editMessageText('💰 Preis: 150€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]] } }));
-bot.action('pay_daddy_silber', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – Daddy Silber
 bot.action('pay_daddy_silber', async (ctx) => {
@@ -1088,8 +1075,6 @@ bot.action('preise_daddy_gold', async (ctx) => {
 });
 bot.action('info_daddy_gold', async (ctx) => ctx.editMessageText('ℹ️ Full Access + 3 Sexchats + Dick Rating + Dirty Panty + Privat Chat + Sextoys.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
 bot.action('preis_daddy_gold', async (ctx) => ctx.editMessageText('💰 Preis: 225€/Monat', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]] } }));
-bot.action('pay_daddy_gold', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – Daddy Gold
 bot.action('pay_daddy_gold', async (ctx) => {
@@ -1169,9 +1154,6 @@ bot.action('preis_girlfriend', async (ctx) => {
     }
   });
 });
-
-bot.action('pay_girlfriend', async (ctx) => {
-  const telegramId = ctx.from.id;
   
 // 🔹 PayPal Link – Girlfriend Pass
 bot.action('pay_girlfriend', async (ctx) => {
@@ -1237,9 +1219,6 @@ bot.action('preis_domina', async (ctx) => {
     }
   });
 });
-
-bot.action('pay_domina', async (ctx) => {
-  const telegramId = ctx.from.id;
   
 // 🔹 PayPal Link – Domina Pass
 bot.action('pay_domina', async (ctx) => {
@@ -1290,9 +1269,6 @@ bot.action('preise_vip', async (ctx) => {
     }
   );
 });
-
-bot.action('pay_vip', async (ctx) => {
-  const telegramId = ctx.from.id;
 
 // 🔹 PayPal Link – VIP Pass
 bot.action('pay_vip', async (ctx) => {
@@ -1370,8 +1346,6 @@ bot.action('custom_3', async (ctx) => {
 });
 bot.action('custom3_info', async (ctx) => ctx.editMessageText('ℹ️ Individuelles Video (3 Min).', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_3' }]] } }));
 bot.action('custom3_price', async (ctx) => ctx.editMessageText('💰 Preis: 100€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_3' }]] } }));
-bot.action('pay_custom3', async (ctx) => {
-  const telegramId = ctx.from.id;
   
 // 🔹 PayPal Link – Custom Video 3 Min
 bot.action('pay_custom3', async (ctx) => {
@@ -1421,8 +1395,6 @@ bot.action('custom_5', async (ctx) => {
 });
 bot.action('custom5_info', async (ctx) => ctx.editMessageText('ℹ️ Individuelles Video (5 Min).', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_5' }]] } }));
 bot.action('custom5_price', async (ctx) => ctx.editMessageText('💰 Preis: 140€', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'custom_5' }]] } }));
-bot.action('pay_custom5', async (ctx) => {
-  const telegramId = ctx.from.id;
   
 // 🔹 PayPal Link – Custom Video 5 Min
 bot.action('pay_custom5', async (ctx) => {
@@ -1490,8 +1462,6 @@ bot.action('panty_item', async (ctx) => {
 });
 bot.action('panty_info', async (ctx) => ctx.editMessageText('ℹ️ Getragene Panty + Foto-Beweis.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'panty_item' }]] } }));
 bot.action('panty_price', async (ctx) => ctx.editMessageText('💰 Preis: 40€ (+20€/Tag extra)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'panty_item' }]] } }));
-bot.action('pay_panty', async (ctx) => {
-  const telegramId = ctx.from.id;
   
 // 🔹 PayPal Link – Panty
 bot.action('pay_panty', async (ctx) => {
@@ -1541,8 +1511,6 @@ bot.action('socks_item', async (ctx) => {
 });
 bot.action('socks_info', async (ctx) => ctx.editMessageText('ℹ️ Getragene Socken + Foto-Beweis.', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'socks_item' }]] } }));
 bot.action('socks_price', async (ctx) => ctx.editMessageText('💰 Preis: 30€ (+20€/Tag extra)', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'socks_item' }]] } }));
-bot.action('pay_socks', async (ctx) => {
-  const telegramId = ctx.from.id;
  
 // 🔹 PayPal Link – Socks
 bot.action('pay_socks', async (ctx) => {
