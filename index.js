@@ -1670,7 +1670,7 @@ bot.action('admin_test_payment', async (ctx) => {
     `&currency_code=EUR` +
     `&custom=${telegramId}` +
     `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=TEST_PAYMENT&price=1` +
-    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}&productName=TEST_PAYMENT&price=1`;
 
   await ctx.editMessageText(
     '💳 *Test-Zahlung (1€)*\n\nMit diesem Button kannst du prüfen, ob Punkte, Preis und Status korrekt funktionieren.',
