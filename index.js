@@ -127,6 +127,9 @@ app.post("/create-order", express.json(), async (req, res) => {
 // Erfolg mit Pass-Aktivierung (universell für alle Produkte mit individueller Laufzeit)
 app.get("/success", async (req, res) => {
   try {
+    // Debug Log
+    console.log("🔍 /success Query Params:", req.query);
+
     const telegramId = req.query.telegramId;
     const productName = req.query.productName || "UNBEKANNT";
     const price = parseFloat(req.query.price) || 0;
@@ -180,19 +183,23 @@ app.get("/success", async (req, res) => {
     // 🔹 Punkte berechnen (15 % vom Preis)
     const punkte = Math.floor(price * 0.15);
 
-    // 🔹 Status & Laufzeit in DB speichern
-    const { error: updateError } = await supabase
-      .from("users")
-      .update({
-        status: statusCode,
-        status_start: startDate.toISOString().split("T")[0],
-        status_end: endDate.toISOString().split("T")[0]
-      })
-      .eq("id", telegramId);
+    // 🔹 Status nur updaten, wenn es KEIN Test Payment ist
+    if (statusCode !== "TEST_PAYMENT") {
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({
+          status: statusCode,
+          status_start: startDate.toISOString().split("T")[0],
+          status_end: endDate.toISOString().split("T")[0]
+        })
+        .eq("id", telegramId);
 
-    if (updateError) {
-      console.error("❌ Fehler bei Status-Update:", updateError);
-      return res.send("Zahlung erfolgreich, aber Status-Update fehlgeschlagen.");
+      if (updateError) {
+        console.error("❌ Fehler bei Status-Update:", updateError);
+        return res.send("Zahlung erfolgreich, aber Status-Update fehlgeschlagen.");
+      }
+    } else {
+      console.log("🧪 Test Payment erkannt – Status wird nicht geändert.");
     }
 
     // 🔹 Punkte & Produkt speichern
@@ -207,7 +214,7 @@ app.get("/success", async (req, res) => {
       return res.send("Zahlung erfolgreich, aber Punkte-Update fehlgeschlagen.");
     }
 
-    console.log(`✅ ${statusCode} aktiviert (${durationDays} Tage) + ${punkte} Punkte an User ${telegramId}`);
+    console.log(`✅ ${statusCode} verarbeitet (${durationDays} Tage) + ${punkte} Punkte an User ${telegramId}`);
 
     // 🔹 Telegram Nachricht an User
     try {
@@ -217,7 +224,7 @@ app.get("/success", async (req, res) => {
       
       await bot.telegram.sendMessage(
         telegramId,
-        `🏆 *${statusCode} aktiviert!*\n\n${ablaufText}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
+        `🏆 *${statusCode} erfolgreich!*\n\n${ablaufText}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
         { parse_mode: "Markdown" }
       );
     } catch (err) {
@@ -227,7 +234,7 @@ app.get("/success", async (req, res) => {
     // 🔹 Antwort im Browser
     res.send(`
       <h1>✅ Zahlung erfolgreich!</h1>
-      <p>${statusCode} wurde freigeschaltet (${durationDays > 0 && durationDays < 9999 ? durationDays + " Tage" : "Lifetime/ohne Ablauf"}).</p>
+      <p>${statusCode} wurde verarbeitet (${durationDays > 0 && durationDays < 9999 ? durationDays + " Tage" : "Lifetime/ohne Ablauf"}).</p>
       <p>Du kannst jetzt zurück zu Telegram gehen.</p>
     `);
 
@@ -1671,6 +1678,35 @@ bot.action('admin_broadcast_info', async (ctx) => {
   );
 });
 
+// Test Payment
+bot.action('admin_test_payment', async (ctx) => {
+  if (ctx.from.id !== 5647887831) return; // Nur Admin
+  
+  const telegramId = ctx.from.id;
+
+  const paypalTestLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Test+Payment` +
+    `&amount=1.00` + 
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=TEST_PAYMENT&price=1` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  await ctx.editMessageText(
+    '💳 *Test-Zahlung (1€)*\n\nMit diesem Button kannst du prüfen, ob Punkte, Preis und Status korrekt funktionieren.',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💵 PayPal (1€)', url: paypalTestLink }],
+          [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
+        ]
+      }
+    }
+  );
+});
+
 // 🔹 Gemeinsame Funktion für Admin-Menü
 async function sendAdminMenu(ctx) {
   const adminText = '🛠️ *Admin-Menü*';
@@ -1681,6 +1717,7 @@ async function sendAdminMenu(ctx) {
       inline_keyboard: [
         [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
         [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
+        [{ text: '💳 Test-Zahlung (1€)', callback_data: 'admin_test_payment' }], // 🔹 NEU
         [{ text: '🔙 Zurück', callback_data: 'back_home' }]
       ]
     }
