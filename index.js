@@ -129,14 +129,23 @@ app.get("/success", async (req, res) => {
   try {
     console.log("🔍 /success Query Params:", req.query);
 
-    const telegramId = req.query.telegramId;
-    const productName = req.query.productName || "UNBEKANNT";
-    const price = parseFloat(req.query.price) || 0;
+    let telegramId = req.query.telegramId;
+    let productName = req.query.productName;
+    let price = parseFloat(req.query.price) || 0;
+
+    // 🔹 Falls alles leer, versuche aus PayPal "custom" zu lesen
+    if (req.query.custom) {
+      const parts = req.query.custom.split("|");
+      telegramId = parts[0] || telegramId;
+      productName = parts[1] || productName;
+      price = parseFloat(parts[2]) || price;
+    }
 
     if (!telegramId) {
       return res.status(400).send("❌ Fehler: Telegram-ID fehlt.");
     }
 
+    // ... Rest deines Codes unverändert
     // Laufzeit-Mapping
     const laufzeitMapping = {
       VIP_PASS: 30, FULL_ACCESS: 30,
@@ -1668,9 +1677,9 @@ bot.action('admin_test_payment', async (ctx) => {
     `&item_name=Test+Payment` +
     `&amount=1.00` + 
     `&currency_code=EUR` +
-    `&custom=${telegramId}` +
-    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=TEST_PAYMENT&price=1` +
-    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}&productName=TEST_PAYMENT&price=1`;
+    `&custom=${telegramId}|TEST_PAYMENT|1` + // 🔹 Alles im custom-Feld speichern
+    `&return=https://${RAILWAY_DOMAIN}/success` + // 🔹 Query hier nicht mehr nötig
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel`;
 
   await ctx.editMessageText(
     '💳 *Test-Zahlung (1€)*\n\nMit diesem Button kannst du prüfen, ob Punkte, Preis und Status korrekt funktionieren.',
