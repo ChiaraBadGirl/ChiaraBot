@@ -124,17 +124,12 @@ app.post("/create-order", express.json(), async (req, res) => {
   }
 });
 
-// Erfolg mit Pass-Aktivierung (universell für alle Produkte mit individueller Laufzeit)
-// Erfolg nur anzeigen, Verarbeitung macht der Webhook
-app.get("/success", (req, res) => {
-  console.log("🔍 PayPal Erfolg - Redirect Params:", req.query);
+// ✅ Erfolg mit Pass-Aktivierung (universell für alle Produkte)
+app.get("/success", async (req, res) => {
+  try {
+    console.log("🔍 PayPal Erfolg - Redirect Params:", req.query);
 
-  res.send(`
-    <h1>✅ Zahlung erfolgreich!</h1>
-    <p>Dein Produkt wird innerhalb weniger Sekunden im Bot aktiviert.</p>
-    <p>Falls nicht, bitte den Admin kontaktieren.</p>
-  `);
-});
+    const { telegramId, productName, price } = req.query;
 
     // Laufzeit-Mapping
     const laufzeitMapping = {
@@ -144,10 +139,10 @@ app.get("/success", (req, res) => {
       VIDEO_PACK_5: 9999, VIDEO_PACK_10: 9999, VIDEO_PACK_15: 9999,
       CUSTOM3_PASS: 9999, CUSTOM5_PASS: 9999,
       PANTY_PASS: 0, SOCKS_PASS: 0,
-      TEST_PAYMENT: 30 // Testzahlung simuliert 30 Tage
+      TEST_PAYMENT: 30
     };
 
-    let statusCode = productName.toUpperCase();
+    let statusCode = (productName || "").toUpperCase();
     if (statusCode.includes("FULL")) statusCode = "FULL";
     if (statusCode.includes("VIP")) statusCode = "VIP";
     if (statusCode.includes("DADDY_BRONZE")) statusCode = "DADDY_BRONZE";
@@ -155,9 +150,8 @@ app.get("/success", (req, res) => {
     if (statusCode.includes("DADDY_GOLD")) statusCode = "DADDY_GOLD";
     if (statusCode.includes("GF_PASS")) statusCode = "GF";
     if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
-    if (statusCode.includes("TEST_PAYMENT")) statusCode = "TEST_PAYMENT";
 
-    const durationDays = laufzeitMapping[productName.toUpperCase()] || 30;
+    const durationDays = laufzeitMapping[statusCode] || 30;
 
     // Start- und Enddatum berechnen
     const startDate = new Date();
@@ -166,11 +160,9 @@ app.get("/success", (req, res) => {
       endDate.setDate(startDate.getDate() + durationDays);
     } else if (durationDays >= 9999) {
       endDate.setFullYear(startDate.getFullYear() + 50);
-    } else {
-      endDate.setDate(startDate.getDate());
     }
 
-    const punkte = Math.floor(price * 0.15);
+    const punkte = Math.floor((price || 0) * 0.15);
 
     // Status nur ändern, wenn KEIN Test Payment
     if (statusCode !== "TEST_PAYMENT") {
@@ -201,10 +193,9 @@ app.get("/success", (req, res) => {
 
     // Telegram Nachricht
     try {
-      const ablaufText = durationDays > 0 && durationDays < 9999
-        ? `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`
-        : (durationDays >= 9999 ? `♾️ Lifetime Access` : `⏳ Kein Ablaufdatum`);
-
+      const ablaufText = durationDays >= 9999
+        ? `♾️ Lifetime Access`
+        : `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`;
       await bot.telegram.sendMessage(
         telegramId,
         `🏆 *${statusCode} erfolgreich!*\n\n${ablaufText}\n💵 Zahlung: ${price}€\n⭐ Punkte: +${punkte}`,
@@ -214,6 +205,7 @@ app.get("/success", (req, res) => {
       console.error(`⚠️ Konnte Nachricht nicht senden an ${telegramId}`, err);
     }
 
+    // HTML Antwort
     res.send(`<h1>✅ Zahlung erfolgreich!</h1><p>${statusCode} verarbeitet.</p>`);
 
   } catch (err) {
@@ -223,14 +215,12 @@ app.get("/success", (req, res) => {
 });
 
 // ❌ Abbruch-Handler
-app.get("/cancel", (req, res) => {
-  console.log("⚠️ Zahlung abgebrochen - Params:", req.query);
+app.get("/cancel", async (req, res) => {
+  try {
+    console.log("⚠️ Zahlung abgebrochen - Params:", req.query);
 
-  res.send(`
-    <h1>⚠️ Zahlung abgebrochen</h1>
-    <p>Dein VIP Pass wurde nicht aktiviert. Du kannst die Zahlung jederzeit erneut starten.</p>
-  `);
-});
+    const telegramId = req.query.telegramId;
+
     // 🔹 Telegram Nachricht an den User
     if (telegramId) {
       try {
@@ -264,7 +254,6 @@ app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
 
     if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
       const capture = event.resource;
-
       const telegramId = capture.custom_id;
       const productName = capture?.invoice_id || capture?.note_to_payer || "Unbekanntes Produkt";
       const amount = parseFloat(capture.amount.value);
@@ -332,6 +321,7 @@ app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
         console.error(`⚠️ Konnte Nachricht an ${telegramId} nicht senden`, err);
       }
     }
+
     res.sendStatus(200);
   } catch (err) {
     console.error("❌ Fehler im Webhook:", err);
