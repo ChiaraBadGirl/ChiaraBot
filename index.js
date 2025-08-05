@@ -698,22 +698,26 @@ bot.action('preis_fullaccess_1m', async (ctx) => {
 bot.action('pay_fullaccess_1m', async (ctx) => {
   const telegramId = ctx.from.id;
 
-  // 🔹 PayPal Link: Full Access Pass (50€)
-const paypalLink_FullAccess = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Full+Access+Pass` +
-  `&amount=50.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=FULL_ACCESS&price=50` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Full Access Pass (1 Monat)
+bot.action('pay_fullaccess_1m', async (ctx) => {
+  const telegramId = ctx.from.id;
 
-  // SumUp Links
+  // PayPal Live Link
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Full+Access+Pass+1+Monat` +
+    `&amount=50.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=FULL_ACCESS&price=50` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  // SumUp Links (Platzhalter)
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
 
   await ctx.editMessageText(
-    '💳 *Wähle deine Zahlungsmethode für Full Access Pass:*',
+    '💳 *Wähle deine Zahlungsmethode für Full Access Pass (1 Monat):*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
@@ -766,19 +770,26 @@ bot.action('preis_videos_5', async (ctx) => ctx.editMessageText('💰 *Preis*: 5
 bot.action('pay_videos_5', async (ctx) => {
   const telegramId = ctx.from.id;
 
-// 🔹 PayPal Link: Video Pack 5 (50€)
-const paypalLink_VideoPack5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Video+Pack+5` +
-  `&amount=50.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_5&price=50` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Video Pack 5 (Lifetime)
+bot.action('pay_videos_5', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  // PayPal Live Link
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Video+Pack+5` +
+    `&amount=50.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_5&price=50` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  // SumUp Links (Platzhalter)
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für 5 Videos:*',
+    '💳 *Wähle deine Zahlungsmethode für Video Pack 5:*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
@@ -812,19 +823,26 @@ bot.action('preis_videos_10', async (ctx) => ctx.editMessageText('💰 *Preis*: 
 bot.action('pay_videos_10', async (ctx) => {
   const telegramId = ctx.from.id;
 
-  // 🔹 PayPal Link: Video Pack 10 (90€)
-const paypalLink_VideoPack10 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Video+Pack+10` +
-  `&amount=90.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_10&price=90` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Video Pack 10 (Lifetime)
+bot.action('pay_videos_10', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  // PayPal Live Link
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Video+Pack+10` +
+    `&amount=90.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_10&price=90` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  // SumUp Links (Platzhalter)
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für 10 Videos:*',
+    '💳 *Wähle deine Zahlungsmethode für Video Pack 10:*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
@@ -858,19 +876,26 @@ bot.action('preis_videos_15', async (ctx) => ctx.editMessageText('💰 *Preis*: 
 bot.action('pay_videos_15', async (ctx) => {
   const telegramId = ctx.from.id;
 
-// 🔹 PayPal Link: Video Pack 15 (120€)
-const paypalLink_VideoPack15 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Video+Pack+15` +
-  `&amount=120.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_15&price=120` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Video Pack 15 (Lifetime)
+bot.action('pay_videos_15', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  // PayPal Live Link
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Video+Pack+15` +
+    `&amount=120.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_15&price=120` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
+  // SumUp Links (Platzhalter)
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für 15 Videos:*',
+    '💳 *Wähle deine Zahlungsmethode für Video Pack 15:*',
     {
       parse_mode: 'Markdown',
       reply_markup: {
@@ -958,17 +983,22 @@ bot.action('preis_daddy_bronze', async (ctx) => ctx.editMessageText('💰 Preis:
 bot.action('pay_daddy_bronze', async (ctx) => {
   const telegramId = ctx.from.id;
 
-  // 🔹 PayPal Link: Daddy Bronze (80€)
-const paypalLink_DaddyBronze = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Daddy+Bronze` +
-  `&amount=80.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_BRONZE&price=80` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Daddy Bronze
+bot.action('pay_daddy_bronze', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Daddy+Bronze` +
+    `&amount=80.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_BRONZE&price=80` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Daddy Bronze:*',
     {
@@ -1007,17 +1037,22 @@ bot.action('preis_daddy_silber', async (ctx) => ctx.editMessageText('💰 Preis:
 bot.action('pay_daddy_silber', async (ctx) => {
   const telegramId = ctx.from.id;
 
-  // 🔹 PayPal Link: Daddy Silber (150€)
-const paypalLink_DaddySilber = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Daddy+Silber` +
-  `&amount=150.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_SILBER&price=150` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Daddy Silber
+bot.action('pay_daddy_silber', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Daddy+Silber` +
+    `&amount=150.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_SILBER&price=150` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Daddy Silber:*',
     {
@@ -1056,17 +1091,22 @@ bot.action('preis_daddy_gold', async (ctx) => ctx.editMessageText('💰 Preis: 2
 bot.action('pay_daddy_gold', async (ctx) => {
   const telegramId = ctx.from.id;
 
-// 🔹 PayPal Link: Daddy Gold (225€)
-const paypalLink_DaddyGold = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Daddy+Gold` +
-  `&amount=225.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_GOLD&price=225` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Daddy Gold
+bot.action('pay_daddy_gold', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Daddy+Gold` +
+    `&amount=225.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_GOLD&price=225` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Daddy Gold:*',
     {
@@ -1133,17 +1173,22 @@ bot.action('preis_girlfriend', async (ctx) => {
 bot.action('pay_girlfriend', async (ctx) => {
   const telegramId = ctx.from.id;
   
-// 🔹 PayPal Link: Girlfriend Pass (150€)
-const paypalLink_GirlfriendPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Girlfriend+Pass` +
-  `&amount=150.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=GF_PASS&price=150` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Girlfriend Pass
+bot.action('pay_girlfriend', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Girlfriend+Pass` +
+    `&amount=150.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=GF_PASS&price=150` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Girlfriend Pass:*',
     {
@@ -1196,17 +1241,22 @@ bot.action('preis_domina', async (ctx) => {
 bot.action('pay_domina', async (ctx) => {
   const telegramId = ctx.from.id;
   
-// 🔹 PayPal Link: Domina Pass (150€)
-const paypalLink_DominaPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Domina+Pass` +
-  `&amount=150.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DOMINA_PASS&price=150` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Domina Pass
+bot.action('pay_domina', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Domina+Pass` +
+    `&amount=150.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DOMINA_PASS&price=150` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Domina Pass:*',
     {
@@ -1244,17 +1294,19 @@ bot.action('preise_vip', async (ctx) => {
 bot.action('pay_vip', async (ctx) => {
   const telegramId = ctx.from.id;
 
-  // 🔹 PayPal Link: VIP Pass (40€)
-const paypalLink_VIPPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=VIP+Pass` +
-  `&amount=40.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIP_PASS&price=40` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – VIP Pass
+bot.action('pay_vip', async (ctx) => {
+  const telegramId = ctx.from.id;
 
-  // SumUp Links (Platzhalter)
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=VIP+Pass` +
+    `&amount=40.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIP_PASS&price=40` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
 
@@ -1321,17 +1373,22 @@ bot.action('custom3_price', async (ctx) => ctx.editMessageText('💰 Preis: 100�
 bot.action('pay_custom3', async (ctx) => {
   const telegramId = ctx.from.id;
   
-// 🔹 PayPal Link: Custom Video 3 Min (100€)
-const paypalLink_Custom3 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Custom+Video+3Min` +
-  `&amount=100.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM3_PASS&price=100` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Custom Video 3 Min
+bot.action('pay_custom3', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Custom+Video+3Min` +
+    `&amount=100.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM3_PASS&price=100` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 3 Min Custom Video:*',
     {
@@ -1367,17 +1424,22 @@ bot.action('custom5_price', async (ctx) => ctx.editMessageText('💰 Preis: 140�
 bot.action('pay_custom5', async (ctx) => {
   const telegramId = ctx.from.id;
   
-// 🔹 PayPal Link: Custom Video 5 Min (140€)
-const paypalLink_Custom5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Custom+Video+5Min` +
-  `&amount=140.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM5_PASS&price=140` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Custom Video 5 Min
+bot.action('pay_custom5', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Custom+Video+5Min` +
+    `&amount=140.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM5_PASS&price=140` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 5 Min Custom Video:*',
     {
@@ -1431,17 +1493,22 @@ bot.action('panty_price', async (ctx) => ctx.editMessageText('💰 Preis: 40€ 
 bot.action('pay_panty', async (ctx) => {
   const telegramId = ctx.from.id;
   
-// 🔹 PayPal Link: Panty (40€)
-const paypalLink_Panty = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Panty` +
-  `&amount=40.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=PANTY_PASS&price=40` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Panty
+bot.action('pay_panty', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Panty` +
+    `&amount=40.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=PANTY_PASS&price=40` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Panty:*',
     {
@@ -1477,17 +1544,22 @@ bot.action('socks_price', async (ctx) => ctx.editMessageText('💰 Preis: 30€ 
 bot.action('pay_socks', async (ctx) => {
   const telegramId = ctx.from.id;
  
-// 🔹 PayPal Link: Socks (30€)
-const paypalLink_Socks = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
-  `&business=binki36offi@gmail.com` +
-  `&item_name=Socks` +
-  `&amount=30.00` +
-  `&currency_code=EUR` +
-  `&custom=${telegramId}` +
-  `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=SOCKS_PASS&price=30` +
-  `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+// 🔹 PayPal Link – Socks
+bot.action('pay_socks', async (ctx) => {
+  const telegramId = ctx.from.id;
+
+  const paypalLink = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
+    `&business=binki36offi@gmail.com` +
+    `&item_name=Socks` +
+    `&amount=30.00` +
+    `&currency_code=EUR` +
+    `&custom=${telegramId}` +
+    `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=SOCKS_PASS&price=30` +
+    `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
+
   const sumupKredit = `https://sumup.com/deinlink-kredit`;
   const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
+
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Socks:*',
     {
