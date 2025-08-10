@@ -9,6 +9,8 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "DEIN_LIVE_CLIENT_ID";
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "DEIN_LIVE_SECRET";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
+const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
+const PORT = process.env.PORT || 3000;
 
 // 🔹 Funktion zum Escapen von MarkdownV2-Zeichen
 function mdEscape(text) {
@@ -418,6 +420,12 @@ app.get("/cancel", async (req, res) => {
 
 // ✅ Webhook-Endpoint für PayPal Live
 app.post("/webhook/paypal", express.json(), async (req, res) => {
+  // 🚨 Signaturprüfung (empfohlen)
+  const valid = await verifyPaypalSignature(req);
+  if (!valid) {
+    return res.status(400).send("Invalid signature");
+  }
+
   try {
     const webhookEvent = req.body;
     console.log("🔔 Live Webhook Event:", webhookEvent.event_type);
@@ -589,7 +597,7 @@ app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
 });
 
 // Server starten
-app.listen(8080, () => {
+app.listen(PORT, () => {
   console.log(`🚀 Bot läuft über Webhook auf Port 8080`);
 });
 
