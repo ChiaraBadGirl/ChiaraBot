@@ -24,12 +24,44 @@ let environment = new paypal.core.LiveEnvironment(
     PAYPAL_CLIENT_SECRET
 );
 let client = new paypal.core.PayPalHttpClient(environment);
+// --- PayPal Webhook-Signatur prüfen (nimmt Headers + Event-Objekt)
+const PAYPAL_API_BASE = (environment instanceof paypal.core.SandboxEnvironment)
+  ? "https://api-m.sandbox.paypal.com"
+  : "https://api-m.paypal.com";
+
+async function verifyPaypalSignature(headers, eventObj) {
+  try {
+    if (!PAYPAL_WEBHOOK_ID) {
+      console.warn("⚠️ PAYPAL_WEBHOOK_ID nicht gesetzt – Signaturprüfung wird übersprungen.");
+      return true;
+    }
+    const verifyBody = {
+      transmission_id: headers["paypal-transmission-id"],
+      transmission_time: headers["paypal-transmission-time"],
+      cert_url: headers["paypal-cert-url"],
+      auth_algo: headers["paypal-auth-algo"],
+      transmission_sig: headers["paypal-transmission-sig"],
+      webhook_id: PAYPAL_WEBHOOK_ID,
+      webhook_event: eventObj
+    };
+    const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
+    const resp = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}` },
+      body: JSON.stringify(verifyBody)
+    });
+    const data = await resp.json();
+    return data?.verification_status === "SUCCESS";
+  } catch (e) {
+    console.error("❌ Fehler bei verifyPaypalSignature:", e);
+    return false;
+  }
+}
+
 
 // === PayPal: SKU-Config & Helpers (modern Checkout) ===
 const skuConfig = {
-  
-  TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 },
-VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
+  VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
   FULL_ACCESS:   { name: "Full Access (1M)",    price: "50.00", status: "FULL",           days: 30 },
   VIDEO_PACK_5:  { name: "Video Pack 5",        price: "50.00", status: "VIDEO_PACK_5",  days: 9999 },
   VIDEO_PACK_10: { name: "Video Pack 10",       price: "90.00", status: "VIDEO_PACK_10", days: 9999 },
@@ -221,7 +253,7 @@ app.get("/pay/:sku", async (req, res) => {
       purchase_units: [{
         reference_id: sku,
         custom_id: telegramId, // für Reconciliation
-        amount: { currency_code: "EUR", value: cfg.price, breakdown: { item_total: { currency_code: "EUR", value: cfg.price } } },
+        amount: { currency_code: "EUR", value: cfg.price },
         description: cfg.name,
         items: [{
           name: cfg.name,
@@ -1866,3 +1898,116 @@ bot.command('broadcast', async (ctx) => {
 
 // 🚀 Bot Start – Webhook only
 console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
+
+
+// === Webhook Route: /webhook/paypal (mit frühem Logging & Signaturprüfung) ===
+app.post("/webhook/paypal", express.text({ type: "*/*" }), async (req, res) => {
+  try {
+    console.log("📩 Webhook HIT /webhook/paypal @", new Date().toISOString());
+    console.log("Headers:", req.headers);
+    console.log("Body RAW:", (req.body || "").toString());
+
+    let event;
+    try {
+      event = req.body ? JSON.parse(req.body) : {}
+    } catch (e) {
+      console.warn("⚠️ Webhook JSON parse error:", e && e.message);
+      return res.status(400).send("bad json");
+    }
+
+    const valid = await verifyPaypalSignature(req.headers, event);
+    console.log("🧾 Signatur gültig?", valid);
+    if (!valid) return res.status(400).send("Invalid signature");
+
+    console.log("🔔 PayPal Webhook Event:", event.event_type);
+
+    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      const capture = event.resource;
+      const amount = parseFloat(capture?.amount?.value || "0");
+      const currency = capture?.amount?.currency_code || "EUR";
+      let telegramId = capture?.custom_id || null;
+      let sku = null;
+      const orderId = capture?.supplementary_data?.related_ids?.order_id;
+      if (orderId) {
+        try {
+          const getReq = new paypal.orders.OrdersGetRequest(orderId);
+          const orderRes = await client.execute(getReq);
+          const pu = orderRes?.result?.purchase_units?.[0];
+          if (pu) {
+            telegramId = telegramId || pu.custom_id;
+            sku = pu.reference_id;
+          }
+        } catch (e) {
+          console.error("⚠️ Konnte Order nicht laden:", e);
+        }
+      }
+      if (telegramId && sku) {
+        await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount: amount.toFixed(2), currency });
+      } else {
+        console.error("❌ Webhook: telegramId oder sku fehlen.", { telegramId, sku });
+      }
+    }
+
+    return res.status(200).send("OK");
+  } catch (err) {
+    console.error("❌ Fehler im PayPal Webhook:", err);
+    return res.status(500).send("ERROR");
+  }
+});
+
+
+
+// === Webhook Route: /paypal/webhook (mit frühem Logging & Signaturprüfung) ===
+app.post("/paypal/webhook", express.text({ type: "*/*" }), async (req, res) => {
+  try {
+    console.log("📩 Webhook HIT /paypal/webhook @", new Date().toISOString());
+    console.log("Headers:", req.headers);
+    console.log("Body RAW:", (req.body || "").toString());
+
+    let event;
+    try {
+      event = req.body ? JSON.parse(req.body) : {}
+    } catch (e) {
+      console.warn("⚠️ Webhook JSON parse error:", e && e.message);
+      return res.status(400).send("bad json");
+    }
+
+    const valid = await verifyPaypalSignature(req.headers, event);
+    console.log("🧾 Signatur gültig?", valid);
+    if (!valid) return res.status(400).send("Invalid signature");
+
+    console.log("🔔 PayPal Webhook Event:", event.event_type);
+
+    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      const capture = event.resource;
+      const amount = parseFloat(capture?.amount?.value || "0");
+      const currency = capture?.amount?.currency_code || "EUR";
+      let telegramId = capture?.custom_id || null;
+      let sku = null;
+      const orderId = capture?.supplementary_data?.related_ids?.order_id;
+      if (orderId) {
+        try {
+          const getReq = new paypal.orders.OrdersGetRequest(orderId);
+          const orderRes = await client.execute(getReq);
+          const pu = orderRes?.result?.purchase_units?.[0];
+          if (pu) {
+            telegramId = telegramId || pu.custom_id;
+            sku = pu.reference_id;
+          }
+        } catch (e) {
+          console.error("⚠️ Konnte Order nicht laden:", e);
+        }
+      }
+      if (telegramId && sku) {
+        await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount: amount.toFixed(2), currency });
+      } else {
+        console.error("❌ Webhook: telegramId oder sku fehlen.", { telegramId, sku });
+      }
+    }
+
+    return res.status(200).send("OK");
+  } catch (err) {
+    console.error("❌ Fehler im PayPal Webhook:", err);
+    return res.status(500).send("ERROR");
+  }
+});
