@@ -9,7 +9,6 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "DEIN_LIVE_CLIENT_ID";
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "DEIN_LIVE_SECRET";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
-const PAYPAL_DEBUG_WEBHOOK = (process.env.PAYPAL_DEBUG_WEBHOOK === "1" || process.env.PAYPAL_DEBUG_WEBHOOK === "true");
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
 const PORT = process.env.PORT || 3000;
 
@@ -458,221 +457,9 @@ app.get("/cancel", async (req, res) => {
 // Sanity-Log: prüfen ob Funktion definiert ist
 console.log("verifyPaypalSignature =", typeof verifyPaypalSignature);
 
-console.log("verifyPaypalSignature =", typeof verifyPaypalSignature);
-
-// Health-check: GET erlaubt, damit du im Browser testen kannst.
-app.get("/webhook/paypal", (req, res) => {
-  res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)");
-});
-app.get("/paypal/webhook", (req, res) => {
-  res.status(200).send("✅ PayPal Webhook Alias OK (GET)");
-});
-if (!valid) return res.status(400).send("Invalid signature");
-
-  try {
-    const webhookEvent = req.body;
-    console.log("🔔 Live Webhook Event:", webhookEvent.event_type);
-
-    if (webhookEvent.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-      const capture = webhookEvent.resource;
-
-      // 📌 Daten extrahieren
-      const telegramId = capture.custom_id;
-      const payerEmail = capture.payer.email_address;
-      const amount = parseFloat(capture.amount.value);
-      const currency = capture.amount.currency_code;
-      const productName = capture?.invoice_id || capture?.note_to_payer || "Unbekanntes Produkt";
-
-      console.log(`✅ Zahlung erfolgreich: ${payerEmail} - ${amount} ${currency} für Produkt ${productName}`);
-
-      // 🔹 Laufzeit-Mapping
-      const laufzeitMapping = {
-        VIP_PASS: 30,
-        FULL_ACCESS: 30,
-        DADDY_BRONZE: 30,
-        DADDY_SILBER: 30,
-        DADDY_GOLD: 30,
-        GF_PASS: 7,
-        DOMINA_PASS: 7,
-        VIDEO_PACK_5: 9999,
-        VIDEO_PACK_10: 9999,
-        VIDEO_PACK_15: 9999,
-        CUSTOM3_PASS: 9999,
-        CUSTOM5_PASS: 9999,
-        PANTY_PASS: 0,
-        SOCKS_PASS: 0
-      };
-
-      // 🔹 Status-Code bestimmen
-      let statusCode = productName.toUpperCase();
-      if (statusCode.includes("FULL")) statusCode = "FULL";
-      if (statusCode.includes("VIP")) statusCode = "VIP";
-      if (statusCode.includes("DADDY_BRONZE")) statusCode = "DADDY_BRONZE";
-      if (statusCode.includes("DADDY_SILBER")) statusCode = "DADDY_SILBER";
-      if (statusCode.includes("DADDY_GOLD")) statusCode = "DADDY_GOLD";
-      if (statusCode.includes("GF_PASS")) statusCode = "GF";
-      if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
-
-      // 🔹 Dauer ermitteln
-      const durationDays = laufzeitMapping[statusCode] || 30;
-
-      // 🔹 Start & Enddatum berechnen
-      const startDate = new Date();
-      const endDate = new Date();
-      if (durationDays > 0 && durationDays < 9999) {
-        endDate.setDate(startDate.getDate() + durationDays);
-      } else if (durationDays >= 9999) {
-        endDate.setFullYear(startDate.getFullYear() + 50); // Lifetime
-      } else {
-        endDate.setDate(startDate.getDate()); // Kein Ablaufdatum
-      }
-
-      // 🔹 Punkteberechnung (15 % vom Betrag)
-      const punkte = Math.floor(amount * 0.15);
-
-      // 🔹 Status & Laufzeit in Supabase speichern
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({
-          status: statusCode,
-          status_start: startDate.toISOString().split("T")[0],
-          status_end: endDate.toISOString().split("T")[0]
-        })
-        .eq("id", telegramId);
-
-      if (updateError) console.error("❌ Fehler bei Status-Update:", updateError);
-
-      // 🔹 Punkte & Produkt speichern
-      const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
-        userid: telegramId,
-        punkteanzahl: punkte,
-        produktname: productName
-      });
-
-      if (rpcError) console.error("❌ Fehler bei Punkte-Update:", rpcError);
-
-      // 🔹 Telegram Nachricht an User
-      try {
-        const ablaufText = durationDays > 0 && durationDays < 9999
-          ? `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`
-          : (durationDays >= 9999 ? `♾️ Lifetime Access` : `⏳ Kein Ablaufdatum`);
-        
-        await bot.telegram.sendMessage(
-          telegramId,
-          `🏆 *${statusCode} aktiviert!*\n\n${ablaufText}\n💵 Zahlung: ${amount}€\n⭐ Punkte: +${punkte}`,
-          { parse_mode: "Markdown" }
-        );
-      } catch (err) {
-        console.error(`⚠️ Konnte Telegram-Nachricht an ${telegramId} nicht senden`, err);
-      }
-    }
-
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ Fehler im PayPal Webhook:", err);
-    res.status(500).send("ERROR");
-  }
-});
-
-// 📌 Debug-Webhook zum Testen von eingehenden Anfragen
-app.post("/paypal/webhook-test", express.json({ type: "*/*" }), (req, res) => {
-  console.log("🔍 Webhook-Test erhalten!");
-  console.log("Headers:", req.headers);
-  console.log("Body:", JSON.stringify(req.body, null, 2));
-  res.status(200).send("Webhook-Test OK");
-});
 
 // 📌 PayPal Webhook Route
-if (!valid) return res.status(400).send("Invalid signature");
 
-  try {
-    console.log("✅ PayPal Webhook empfangen:", req.body);
-
-    const event = req.body;
-
-    // Wir reagieren nur auf erfolgreiche Zahlungen
-    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-      const capture = event.resource;
-
-      // 💰 Betrag & Währung
-      const amount = parseFloat(capture.amount.value);
-      const currency = capture.amount.currency_code;
-
-      // 📌 Kunden-ID (aus Custom-Feld)
-      let telegramId = capture.custom_id;
-
-      // ❌ Falls keine Zahl: Testweise Admin-ID nutzen
-      if (isNaN(telegramId)) {
-        telegramId = 5647887831; // Deine ID für Test
-      }
-
-      // 📌 Produktname aus Beschreibung (falls vorhanden)
-      const produktName = capture?.invoice_id || capture?.note_to_payer || "Unbekanntes Produkt";
-
-      console.log(`💵 Zahlung erfolgreich: ${amount} ${currency} von User ${telegramId} für Produkt: ${produktName}`);
-
-      // 🔢 Punkteberechnung (15 % vom Betrag)
-      const punkte = Math.floor(amount * 0.15);
-
-      // 🔄 Punkte & Produkt in Supabase updaten
-      const { error } = await supabase
-        .rpc('increment_punkte_und_produkt', {
-          userid: telegramId,
-          punkteanzahl: punkte,
-          produktname: produktName
-        });
-
-      if (error) {
-        console.error("❌ Fehler beim Update:", error);
-      } else {
-        console.log(`✅ ${punkte} Punkte gutgeschrieben + Produkt '${produktName}' an User ${telegramId}`);
-      }
-
-      // ✅ Erfolg an PayPal zurückmelden
-      res.status(200).send("OK");
-    } else {
-      res.status(200).send("IGNORED");
-    }
-
-  } catch (err) {
-    console.error("❌ Fehler im PayPal Webhook:", err);
-    res.status(500).send("ERROR");
-  }
-});
-
-// Server starten
-
-// === Unified PayPal Webhook Handler ===
-const webhookHandler = async (req, res) => {
-  try {
-    console.log("🛰️ Webhook HIT", req.originalUrl, "at", new Date().toISOString());
-    // parse body (raw text to JSON)
-    let event;
-    try {
-      event = req.body && typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    } catch (e) {
-      console.warn("⚠️ JSON parse error:", e?.message);
-      return res.status(400).send("bad json");
-    }
-    // Signature check (bypass if debug)
-    const valid = PAYPAL_DEBUG_WEBHOOK ? true : await verifyPaypalSignature(req.headers, event);
-    console.log("🧾 Signatur gültig?", valid);
-    if (!valid) return res.status(400).send("Invalid signature");
-    console.log("🔔 Event:", event?.event_type);
-    // minimal OK
-    res.status(200).send("OK");
-    // NOTE: hier ggf. fulfillOrder(event) aufrufen, falls noch nicht vorhanden.
-  } catch (err) {
-    console.error("❌ Fehler im Webhook:", err);
-    res.status(500).send("ERROR");
-  }
-};
-
-app.post("/webhook/paypal", express.text({ type: "*/*" }), webhookHandler);
-app.post("/paypal/webhook", express.text({ type: "*/*" }), webhookHandler);
-app.listen(PORT, () => {
-  console.log(`🚀 Bot läuft über Webhook auf Port 8080`);
-});
 
 // Verbindungstest zu Supabase
 (async () => {
@@ -1938,7 +1725,10 @@ console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
 
 
 // === Webhook Route: /webhook/paypal (mit frühem Logging & Signaturprüfung) ===
-console.log("Headers:", req.headers);
+app.post("/webhook/paypal", express.text({ type: "*/*" }), async (req, res) => {
+  try {
+    console.log("📩 Webhook HIT /webhook/paypal @", new Date().toISOString());
+    console.log("Headers:", req.headers);
     console.log("Body RAW:", (req.body || "").toString());
 
     let event;
@@ -1992,7 +1782,10 @@ console.log("Headers:", req.headers);
 
 
 // === Webhook Route: /paypal/webhook (mit frühem Logging & Signaturprüfung) ===
-console.log("Headers:", req.headers);
+app.post("/paypal/webhook", express.text({ type: "*/*" }), async (req, res) => {
+  try {
+    console.log("📩 Webhook HIT /paypal/webhook @", new Date().toISOString());
+    console.log("Headers:", req.headers);
     console.log("Body RAW:", (req.body || "").toString());
 
     let event;
@@ -2042,3 +1835,50 @@ console.log("Headers:", req.headers);
     return res.status(500).send("ERROR");
   }
 });
+// === Healthchecks (GET) für schnellen Test im Browser ===
+app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
+app.get("/paypal/webhook", (req, res) => res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
+
+// === Gemeinsamer Webhook-Handler ===
+const _paypalWebhookHandler = async (req, res) => {
+  try {
+    console.log("🛰️ Webhook HIT", req.originalUrl, "@", new Date().toISOString());
+    console.log("Headers:", req.headers);
+    const raw = (req.body || "").toString();
+    console.log("Body RAW:", raw);
+
+    let event;
+    try {
+      event = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      console.warn("⚠️ JSON parse error:", e?.message);
+      return res.status(400).send("bad json");
+    }
+
+    // Optionaler Debug-Bypass
+    const valid = (process.env.PAYPAL_DEBUG_WEBHOOK === "true" || process.env.PAYPAL_DEBUG_WEBHOOK === "1")
+      ? true
+      : await verifyPaypalSignature(req.headers, event);
+    console.log("🧾 Signatur gültig?", valid);
+    if (!valid) return res.status(400).send("Invalid signature");
+
+    console.log("🔔 PayPal Webhook Event:", event.event_type);
+
+    // Nur ein Minimal-Flow – dein existierendes Handling kann hier rein
+    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      // Beispiel: nur OK quittieren
+      console.log("💰 Capture:", event?.resource?.id, event?.resource?.amount);
+    }
+
+    return res.status(200).send("OK");
+  } catch (err) {
+    console.error("❌ Fehler im PayPal Webhook:", err);
+    return res.status(500).send("ERROR");
+  }
+};
+
+// POST-Routen (raw body, damit Signatur stimmt)
+app.post("/webhook/paypal", express.text({ type: "*/*" }), _paypalWebhookHandler);
+app.post("/paypal/webhook", express.text({ type: "*/*" }), _paypalWebhookHandler);
+
+
