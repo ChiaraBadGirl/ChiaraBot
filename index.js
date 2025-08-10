@@ -9,6 +9,7 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "DEIN_LIVE_CLIENT_ID";
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "DEIN_LIVE_SECRET";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "super-secret-chiara";
 const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.app";
+const PAYPAL_DEBUG_WEBHOOK = (process.env.PAYPAL_DEBUG_WEBHOOK === "1" || process.env.PAYPAL_DEBUG_WEBHOOK === "true");
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
 const PORT = process.env.PORT || 3000;
 
@@ -456,10 +457,17 @@ app.get("/cancel", async (req, res) => {
 
 // Sanity-Log: prüfen ob Funktion definiert ist
 console.log("verifyPaypalSignature =", typeof verifyPaypalSignature);
-app.post("/webhook/paypal", express.json(), async (req, res) => {
-  // 🚨 Signaturprüfung
-  const valid = await verifyPaypalSignature(req);
-  if (!valid) return res.status(400).send("Invalid signature");
+
+console.log("verifyPaypalSignature =", typeof verifyPaypalSignature);
+
+// Health-check: GET erlaubt, damit du im Browser testen kannst.
+app.get("/webhook/paypal", (req, res) => {
+  res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)");
+});
+app.get("/paypal/webhook", (req, res) => {
+  res.status(200).send("✅ PayPal Webhook Alias OK (GET)");
+});
+if (!valid) return res.status(400).send("Invalid signature");
 
   try {
     const webhookEvent = req.body;
@@ -575,10 +583,7 @@ app.post("/paypal/webhook-test", express.json({ type: "*/*" }), (req, res) => {
 });
 
 // 📌 PayPal Webhook Route
-app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
-  // 🚨 Signaturprüfung
-  const valid = await verifyPaypalSignature(req);
-  if (!valid) return res.status(400).send("Invalid signature");
+if (!valid) return res.status(400).send("Invalid signature");
 
   try {
     console.log("✅ PayPal Webhook empfangen:", req.body);
@@ -636,6 +641,35 @@ app.post("/paypal/webhook", express.json({ type: "*/*" }), async (req, res) => {
 });
 
 // Server starten
+
+// === Unified PayPal Webhook Handler ===
+const webhookHandler = async (req, res) => {
+  try {
+    console.log("🛰️ Webhook HIT", req.originalUrl, "at", new Date().toISOString());
+    // parse body (raw text to JSON)
+    let event;
+    try {
+      event = req.body && typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    } catch (e) {
+      console.warn("⚠️ JSON parse error:", e?.message);
+      return res.status(400).send("bad json");
+    }
+    // Signature check (bypass if debug)
+    const valid = PAYPAL_DEBUG_WEBHOOK ? true : await verifyPaypalSignature(req.headers, event);
+    console.log("🧾 Signatur gültig?", valid);
+    if (!valid) return res.status(400).send("Invalid signature");
+    console.log("🔔 Event:", event?.event_type);
+    // minimal OK
+    res.status(200).send("OK");
+    // NOTE: hier ggf. fulfillOrder(event) aufrufen, falls noch nicht vorhanden.
+  } catch (err) {
+    console.error("❌ Fehler im Webhook:", err);
+    res.status(500).send("ERROR");
+  }
+};
+
+app.post("/webhook/paypal", express.text({ type: "*/*" }), webhookHandler);
+app.post("/paypal/webhook", express.text({ type: "*/*" }), webhookHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Bot läuft über Webhook auf Port 8080`);
 });
@@ -1904,10 +1938,7 @@ console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
 
 
 // === Webhook Route: /webhook/paypal (mit frühem Logging & Signaturprüfung) ===
-app.post("/webhook/paypal", express.text({ type: "*/*" }), async (req, res) => {
-  try {
-    console.log("📩 Webhook HIT /webhook/paypal @", new Date().toISOString());
-    console.log("Headers:", req.headers);
+console.log("Headers:", req.headers);
     console.log("Body RAW:", (req.body || "").toString());
 
     let event;
@@ -1961,10 +1992,7 @@ app.post("/webhook/paypal", express.text({ type: "*/*" }), async (req, res) => {
 
 
 // === Webhook Route: /paypal/webhook (mit frühem Logging & Signaturprüfung) ===
-app.post("/paypal/webhook", express.text({ type: "*/*" }), async (req, res) => {
-  try {
-    console.log("📩 Webhook HIT /paypal/webhook @", new Date().toISOString());
-    console.log("Headers:", req.headers);
+console.log("Headers:", req.headers);
     console.log("Body RAW:", (req.body || "").toString());
 
     let event;
