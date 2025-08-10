@@ -1,6 +1,6 @@
 {
   "name": "chiarabot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.4",
+    "@paypal/checkout-server-sdk": "1.0.3",
     "@supabase/supabase-js": "^2.45.4",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
