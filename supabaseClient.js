@@ -1,22 +1,25 @@
+// supabaseClient.js
 import { createClient } from '@supabase/supabase-js';
 
-// 🔑 Variablen aus Railway lesen
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; // <-- Service-Role!
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';                 // optionaler Extra-Header
 
-// 🧪 Testausgabe im Log
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error("❌ Supabase Keys fehlen! Bitte in Railway Variables setzen.");
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ SUPABASE_URL oder SUPABASE_SERVICE_ROLE_KEY fehlt. Bitte in Railway setzen.');
+  process.exit(1); // Server nicht starten, wenn kritische ENV fehlt
 } else {
-  console.log("✅ Supabase Keys erfolgreich geladen!");
+  console.log('✅ Supabase Service-Role geladen (serverseitig).');
 }
 
-// 🚀 Supabase Client erstellen mit x-bot-secret Header
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  },
   global: {
-    headers: {
-      'x-bot-secret': WEBHOOK_SECRET
-    }
-  }
+    // Falls du den Header brauchst – sonst bleibt es einfach leer.
+    headers: WEBHOOK_SECRET ? { 'x-bot-secret': WEBHOOK_SECRET } : {},
+  },
 });
