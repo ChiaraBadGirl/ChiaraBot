@@ -16,5 +16,10 @@
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "telegraf": "^4.16.3"
+  },
+  "overrides": {
+    "whatwg-url": "^14.0.0",
+    "tr46": "^5.0.0"
   }
 }
+
