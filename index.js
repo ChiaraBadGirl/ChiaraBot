@@ -1881,3 +1881,75 @@ const _paypalWebhookHandler = async (req, res) => {
 app.post("/webhook/paypal", express.text({ type: "*/*" }), _paypalWebhookHandler);
 app.post("/paypal/webhook", express.text({ type: "*/*" }), _paypalWebhookHandler);
 
+
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🚀 Server läuft und hört auf PORT ${PORT}`);
+});
+
+app.get("/_health", (req, res) => res.status(200).send("ok"));
+
+
+// --- SAFE Webhook endpoints (raw body, early logs) ---
+const PAYPAL_DEBUG_WEBHOOK = (process.env.PAYPAL_DEBUG_WEBHOOK === "1" || process.env.PAYPAL_DEBUG_WEBHOOK === "true");
+const PAYPAL_ENVIRONMENT = (process.env.PAYPAL_ENVIRONMENT === "sandbox") ? "sandbox" : "live";
+const PAYPAL_API_BASE = PAYPAL_ENVIRONMENT === "live" ? "https://api.paypal.com" : "https://api.sandbox.paypal.com";
+const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
+
+app.get("/webhook/paypal", (req,res)=> res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
+app.get("/paypal/webhook", (req,res)=> res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
+
+async function verifyPaypalSignatureRAW(req, rawBody) {
+  try {
+    if (!PAYPAL_WEBHOOK_ID) {
+      console.warn("⚠️ PAYPAL_WEBHOOK_ID fehlt – Debug-Bypass:", PAYPAL_DEBUG_WEBHOOK);
+      return true; // nicht blockieren
+    }
+    const auth = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString("base64");
+    const payload = {
+      transmission_id: req.headers["paypal-transmission-id"],
+      transmission_time: req.headers["paypal-transmission-time"],
+      cert_url: req.headers["paypal-cert-url"],
+      auth_algo: req.headers["paypal-auth-algo"],
+      transmission_sig: req.headers["paypal-transmission-sig"],
+      webhook_id: PAYPAL_WEBHOOK_ID,
+      webhook_event: JSON.parse(rawBody || "{}")
+    };
+    const resp = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    console.log("🔎 Verify status:", resp.status, "resp:", data);
+    return data?.verification_status === "SUCCESS";
+  } catch (e) {
+    console.error("❌ verifyPaypalSignatureRAW error:", e);
+    return false;
+  }
+}
+
+const paypalRaw = express.raw({ type: "application/json" });
+
+const _paypalHandler = async (req, res) => {
+  try {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body || "");
+    console.log(`📩 Webhook HIT ${req.path} @`, new Date().toISOString());
+    console.log("Headers:", req.headers);
+    console.log("Body RAW:", rawBody.slice(0, 2000)); // limit output
+    const valid = PAYPAL_DEBUG_WEBHOOK ? true : await verifyPaypalSignatureRAW(req, rawBody);
+    console.log("🧾 Signatur gültig?", valid);
+    if (!valid) return res.status(200).send("IGNORED_INVALID_SIGNATURE");
+    // Minimal processing
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("❌ Fehler im Webhook:", err);
+    return res.status(200).send("IGNORED_ERROR");
+  }
+};
+
+// Mount routes LAST to avoid body-parser interference
+app.post("/webhook/paypal", paypalRaw, _paypalHandler);
+app.post("/paypal/webhook", paypalRaw, _paypalHandler);
+
