@@ -460,6 +460,155 @@ console.log("verifyPaypalSignature =", typeof verifyPaypalSignature);
 
 // 📌 PayPal Webhook Route
 
+// 📌 PayPal Webhook Route (idempotent)
+{
+  // In-Memory Idempotenz (zusätzlich zur DB – überlebt keinen Neustart, verhindert Double-Fulfillment bei schnellen Resends)
+  const processed = new Set();
+
+  function markProcessed(key) {
+    if (!key) return false;
+    if (processed.has(key)) return false;
+    processed.add(key);
+    return true;
+  }
+
+  // Hilfsfunktionen, um TelegramID & SKU aus Event zu holen
+  function extractFromEvent(evt) {
+    let telegramId = null;
+    let sku = null;
+    let amount = null;
+    let currency = null;
+    let captureId = null;
+
+    try {
+      if (evt.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+        const r = evt.resource || {};
+        telegramId = String(r.custom_id || "").trim();
+        amount = r?.amount?.value || null;
+        currency = r?.amount?.currency_code || null;
+        sku = r?.supplementary_data?.related_ids?.order_id ? null : null; // nicht zuverlässig hier
+        captureId = r?.id || null;
+      } else if (evt.event_type === "CHECKOUT.ORDER.APPROVED") {
+        const r = evt.resource || {};
+        const pu = Array.isArray(r.purchase_units) ? r.purchase_units[0] : null;
+        telegramId = String((pu && pu.custom_id) || "").trim();
+        sku = (pu && pu.reference_id) || null;
+        const cap = pu?.payments?.captures?.[0];
+        if (cap) {
+          amount = cap?.amount?.value || null;
+          currency = cap?.amount?.currency_code || null;
+          captureId = cap?.id || null;
+        }
+      }
+    } catch (e) {
+      console.error("⚠️ Konnte Daten nicht aus Event extrahieren:", e);
+    }
+
+    return { telegramId, sku, amount, currency, captureId };
+  }
+
+  // Hinweis: Für PayPal v2-Verification reicht der JSON-Body, kein raw-Buffer nötig.
+  app.post("/webhook/paypal", express.json(), async (req, res) => {
+    const headers = req.headers || {};
+    const eventObj = req.body;
+
+    try {
+      console.log(`📩 Webhook HIT /webhook/paypal @ ${new Date().toISOString()}`);
+      console.log("Headers:", {
+        host: headers["host"],
+        "user-agent": headers["user-agent"],
+        "content-length": headers["content-length"],
+        "paypal-auth-algo": headers["paypal-auth-algo"],
+        "paypal-auth-version": headers["paypal-auth-version"],
+        "paypal-cert-url": headers["paypal-cert-url"],
+        "paypal-transmission-id": headers["paypal-transmission-id"],
+        "paypal-transmission-time": headers["paypal-transmission-time"],
+      });
+      console.log("Event ID:", eventObj?.id, "Type:", eventObj?.event_type);
+
+      // Signatur prüfen
+      const valid = await verifyPaypalSignature(headers, eventObj);
+      console.log("🧾 Signatur gültig?", valid);
+      if (!valid) {
+        // Bewusst 200 zurückgeben, damit PayPal ggf. resend triggert.
+        return res.status(200).send("ignored: invalid signature");
+      }
+
+      const type = eventObj?.event_type;
+      if (!type) {
+        return res.status(200).send("no type");
+      }
+
+      // Idempotenz-Key bestimmen
+      let idempotencyKey = eventObj?.resource?.id || eventObj?.id;
+
+      // Daten extrahieren
+      const { telegramId, sku, amount, currency, captureId } = extractFromEvent(eventObj);
+      if (captureId) idempotencyKey = captureId;
+
+      // Optional: in der DB als verarbeitet markieren (best effort, ohne Crash)
+      try {
+        // Wenn du eine Tabelle mit UNIQUE(event_id) hast, kannst du hier upsert nutzen:
+        // await supabase.from("paypal_webhook_events").upsert(
+        //   { event_id: idempotencyKey, type, created_at: new Date().toISOString() },
+        //   { onConflict: "event_id" }
+        // );
+      } catch (e) {
+        console.warn("⚠️ Konnte Webhook-Event nicht in DB protokollieren (ignoriert):", e.message || e);
+      }
+
+      // Lokale Idempotenz
+      if (!markProcessed(idempotencyKey)) {
+        console.log("↩️ Bereits verarbeitet:", idempotencyKey);
+        return res.status(200).send("ok (duplicate)");
+      }
+
+      // Business-Handling
+      if (type === "PAYMENT.CAPTURE.COMPLETED") {
+        if (!telegramId) {
+          console.warn("⚠️ capture ohne custom_id – kann User nicht zuordnen.");
+          return res.status(200).send("ok (no custom_id)");
+        }
+        const safeSku = sku || (eventObj?.resource?.invoice_id ? String(eventObj.resource.invoice_id).split(":")[0] : "UNKNOWN");
+        console.log(`💸 PAYMENT.CAPTURE.COMPLETED: ${captureId} -> user ${telegramId}, sku ${safeSku}`);
+        try {
+          await fulfillOrder({ telegramId, sku: safeSku, amount, currency });
+        } catch (e) {
+          console.error("❌ Fehler beim Fulfillment:", e);
+        }
+      } else if (type === "CHECKOUT.ORDER.APPROVED") {
+        // Einige Händler wollen hier NICHT fulfillen. Wir fulfillen nur, wenn bereits ein Capture anhängt und COMPLETED ist.
+        const pu = eventObj?.resource?.purchase_units?.[0];
+        const cap = pu?.payments?.captures?.[0];
+        if (cap?.status === "COMPLETED" && telegramId) {
+          const safeSku = sku || pu?.reference_id || "UNKNOWN";
+          console.log(`🧾 CHECKOUT.ORDER.APPROVED (mit Capture COMPLETE): ${cap.id} -> user ${telegramId}, sku ${safeSku}`);
+          try {
+            await fulfillOrder({
+              telegramId,
+              sku: safeSku,
+              amount: cap?.amount?.value,
+              currency: cap?.amount?.currency_code
+            });
+          } catch (e) {
+            console.error("❌ Fehler beim Fulfillment (APPROVED):", e);
+          }
+        } else {
+          console.log("ℹ️ ORDER.APPROVED ohne Capture-Completion – warte auf PAYMENT.CAPTURE.COMPLETED.");
+        }
+      } else {
+        console.log("ℹ️ Unbehandelter Event-Typ:", type);
+      }
+
+      return res.status(200).send("ok");
+    } catch (e) {
+      console.error("❌ Webhook-Fehler:", e);
+      // PayPal erwartet 2xx; bei echten Serverfehlern trotzdem 200, sonst spammt PayPal Resends
+      return res.status(200).send("ok (error logged)");
+    }
+  });
+}
+
 
 // Verbindungstest zu Supabase
 (async () => {
