@@ -24,7 +24,7 @@ let environment = new paypal.core.LiveEnvironment(
     PAYPAL_CLIENT_SECRET
 );
 let client = new paypal.core.PayPalHttpClient(environment);
-// --- PayPal Webhook-Signatur prüfen (muss vor den Routes stehen)
+// --- PayPal Webhook-Signatur prüfen (vor Routes)
 const PAYPAL_API_BASE = (environment instanceof paypal.core.SandboxEnvironment)
   ? "https://api-m.sandbox.paypal.com"
   : "https://api-m.paypal.com";
