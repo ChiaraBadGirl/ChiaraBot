@@ -63,13 +63,32 @@ app.get("/", (req, res) => {
 });
 
 // ===================
-// Create-Order Route (Neuer PayPal Checkout)
+// Produkt-Mapping mit Punkten, Status & Laufzeit
+// ===================
+const productMap = {
+  "VIP Pass": { punkte: 100, status: "VIP", laufzeitTage: 30 },
+  "Full Access": { punkte: 50, status: "Full", laufzeitTage: 30 },
+  "Daddy Bronze": { punkte: 20, status: "Daddy Bronze", laufzeitTage: 30 },
+  "Daddy Silber": { punkte: 40, status: "Daddy Silber", laufzeitTage: 30 },
+  "Daddy Gold": { punkte: 60, status: "Daddy Gold", laufzeitTage: 30 },
+  "Girlfriend Pass": { punkte: 30, status: "Girlfriend", laufzeitTage: 30 },
+  "Domina Pass": { punkte: 35, status: "Domina", laufzeitTage: 30 },
+  "Video Pack 5": { punkte: 5, status: null, laufzeitTage: 0 },
+  "Video Pack 10": { punkte: 10, status: null, laufzeitTage: 0 },
+  "Video Pack 15": { punkte: 15, status: null, laufzeitTage: 0 },
+  "Panty": { punkte: 0, status: null, laufzeitTage: 0 },
+  "Socks": { punkte: 0, status: null, laufzeitTage: 0 }
+};
+
+// ===================
+// PayPal Order erstellen
 // ===================
 app.post("/create-order", express.json(), async (req, res) => {
   try {
     const { telegramId, productName, price } = req.body;
+
     if (!telegramId || !productName || !price) {
-      return res.status(400).json({ error: "Fehlende Parameter" });
+      return res.status(400).send({ error: "Fehlende Parameter" });
     }
 
     const request = new paypal.orders.OrdersCreateRequest();
@@ -79,798 +98,546 @@ app.post("/create-order", express.json(), async (req, res) => {
       purchase_units: [
         {
           reference_id: productName,
+          custom_id: String(telegramId),
           amount: {
             currency_code: "EUR",
             value: price
-          },
-          custom_id: telegramId
+          }
         }
       ],
       application_context: {
         brand_name: "ChiaraBot",
-        landing_page: "NO_PREFERENCE",
+        landing_page: "LOGIN",
         user_action: "PAY_NOW",
-        return_url: `https://${RAILWAY_DOMAIN}/paypal/success?telegramId=${telegramId}&productName=${productName}&price=${price}`,
-        cancel_url: `https://${RAILWAY_DOMAIN}/paypal/cancel?telegramId=${telegramId}`
+        return_url: `https://${RAILWAY_DOMAIN}/success`,
+        cancel_url: `https://${RAILWAY_DOMAIN}/cancel`
       }
     });
 
     const order = await paypalClient.execute(request);
-    const approveLink = order.result.links.find(l => l.rel === "approve")?.href;
+    const approveLink = order.result.links.find((l) => l.rel === "approve").href;
 
-    if (!approveLink) {
-      return res.status(500).json({ error: "Kein Approve-Link erhalten" });
-    }
-
-    res.json({ approveLink });
+    res.send({ approveLink });
   } catch (err) {
-    console.error("❌ Fehler bei /create-order:", err);
-    res.status(500).json({ error: "PayPal Order Fehler" });
+    console.error("❌ Fehler beim Erstellen der PayPal-Order:", err);
+    res.status(500).send({ error: "PayPal-Fehler" });
   }
 });
 
 // ===================
-// PayPal Webhook für neuen Checkout
+// PayPal Webhook
 // ===================
 app.post("/webhook/paypal", express.json(), async (req, res) => {
   try {
     const event = req.body;
-    console.log("🔔 PayPal Webhook Event:", event.event_type);
+    console.log("📩 PayPal Webhook empfangen:", event.event_type);
 
-    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-      const capture = event.resource;
+    if (event.event_type === "CHECKOUT.ORDER.APPROVED") {
+      const purchase = event.resource?.purchase_units?.[0];
+      const telegramId = purchase?.custom_id;
+      const productName = purchase?.reference_id;
 
-      // 📌 Daten extrahieren
-      const telegramId = capture.custom_id;
-      const payerEmail = capture?.payer?.email_address || "Unbekannt";
-      const amount = parseFloat(capture.amount.value);
-      const currency = capture.amount.currency_code;
-      const productName = capture?.invoice_id || capture?.note_to_payer || capture?.supplementary_data?.related_ids?.order_id || "Unbekannt";
-
-      console.log(`✅ Zahlung erfolgreich: ${payerEmail} - ${amount} ${currency} für ${productName}`);
-
-      // 🔹 Laufzeit-Mapping
-      const laufzeitMapping = {
-        VIP_PASS: 30,
-        FULL_ACCESS: 30,
-        DADDY_BRONZE: 30,
-        DADDY_SILBER: 30,
-        DADDY_GOLD: 30,
-        GF_PASS: 7,
-        DOMINA_PASS: 7,
-        VIDEO_PACK_5: 9999,
-        VIDEO_PACK_10: 9999,
-        VIDEO_PACK_15: 9999,
-        CUSTOM3_PASS: 9999,
-        CUSTOM5_PASS: 9999,
-        PANTY_PASS: 0,
-        SOCKS_PASS: 0
-      };
-
-      // 🔹 Status-Code bestimmen
-      let statusCode = productName.toUpperCase();
-      if (statusCode.includes("FULL")) statusCode = "FULL";
-      if (statusCode.includes("VIP")) statusCode = "VIP";
-      if (statusCode.includes("DADDY_BRONZE")) statusCode = "DADDY_BRONZE";
-      if (statusCode.includes("DADDY_SILBER")) statusCode = "DADDY_SILBER";
-      if (statusCode.includes("DADDY_GOLD")) statusCode = "DADDY_GOLD";
-      if (statusCode.includes("GF_PASS")) statusCode = "GF";
-      if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
-
-      // 🔹 Dauer ermitteln
-      const durationDays = laufzeitMapping[statusCode] || 30;
-
-      // 🔹 Start & Enddatum berechnen
-      const startDate = new Date();
-      const endDate = new Date();
-      if (durationDays > 0 && durationDays < 9999) {
-        endDate.setDate(startDate.getDate() + durationDays);
-      } else if (durationDays >= 9999) {
-        endDate.setFullYear(startDate.getFullYear() + 50); // Lifetime
-      } else {
-        endDate.setDate(startDate.getDate()); // Kein Ablaufdatum
+      if (!telegramId || !productName) {
+        console.error("❌ Webhook-Daten unvollständig:", purchase);
+        return res.status(400).send("Missing data");
       }
 
-      // 🔹 Punkteberechnung (15 % vom Betrag)
-      const punkte = Math.floor(amount * 0.15);
+      // Produkt aus Mapping laden
+      const produkt = productMap[productName];
+      if (!produkt) {
+        console.error(`❌ Unbekanntes Produkt: ${productName}`);
+        return res.status(400).send("Unknown product");
+      }
 
-      // 🔹 Status & Laufzeit in Supabase speichern
+      // Ablaufdatum berechnen
+      const passAblauf = produkt.laufzeitTage
+        ? new Date(Date.now() + produkt.laufzeitTage * 24 * 60 * 60 * 1000)
+        : null;
+
+      // Punkte erhöhen & Status/Ablaufdatum setzen
       const { error: updateError } = await supabase
         .from("users")
         .update({
-          status: statusCode,
-          status_start: startDate.toISOString().split("T")[0],
-          status_end: endDate.toISOString().split("T")[0]
+          punkte: supabase.rpc("increment_punkte", { punkteanzahl: produkt.punkte }),
+          status: produkt.status || undefined,
+          pass_ablaufdatum: passAblauf
         })
         .eq("id", telegramId);
 
       if (updateError) {
-        console.error("❌ Fehler bei Status-Update:", updateError);
+        console.error("❌ Fehler bei DB-Update:", updateError);
       }
 
-      // 🔹 Punkte & Produkt speichern
-      const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
-        userid: telegramId,
-        punkteanzahl: punkte,
-        produktname: productName
-      });
-
-      if (rpcError) {
-        console.error("❌ Fehler bei Punkte-Update:", rpcError);
-      }
-
-      // 🔹 Telegram Nachricht an User
+      // Nachricht an User senden
       try {
-        const ablaufText = durationDays > 0 && durationDays < 9999
-          ? `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`
-          : (durationDays >= 9999 ? `♾️ Lifetime Access` : `⏳ Kein Ablaufdatum`);
-
         await bot.telegram.sendMessage(
           telegramId,
-          `🏆 *${statusCode} aktiviert!*\n\n${ablaufText}\n💵 Zahlung: ${amount}€\n⭐ Punkte: +${punkte}`,
-          { parse_mode: "Markdown" }
+          `✅ Dein Kauf von *${mdEscape(productName)}* war erfolgreich!\n\n` +
+          (produkt.status ? `📌 Neuer Status: *${mdEscape(produkt.status)}*\n` : "") +
+          (produkt.laufzeitTage ? `⏳ Laufzeit: *${produkt.laufzeitTage} Tage*\n` : "") +
+          (produkt.punkte ? `⭐ Punkte erhalten: *${produkt.punkte}*\n` : ""),
+          { parse_mode: "MarkdownV2" }
         );
       } catch (err) {
-        console.error(`⚠️ Konnte Telegram-Nachricht an ${telegramId} nicht senden`, err);
+        console.error(`⚠️ Nachricht an ${telegramId} konnte nicht gesendet werden:`, err);
       }
     }
 
     res.sendStatus(200);
   } catch (err) {
-    console.error("❌ Fehler im PayPal Webhook:", err);
-    res.status(500).send("ERROR");
+    console.error("❌ Webhook-Fehler:", err);
+    res.status(500).send("Webhook error");
   }
 });
 
 // ===================
-// Gemeinsame Funktion: PayPal-Link über /create-order holen
-// ===================
-async function getPayPalApproveLink(telegramId, productName, price) {
-  try {
-    const response = await fetch(`https://${RAILWAY_DOMAIN}/create-order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        telegramId,
-        productName,
-        price
-      })
-    });
-
-    const data = await response.json();
-    if (data?.approveLink) {
-      return data.approveLink;
-    } else {
-      console.error("❌ Kein Approve-Link erhalten:", data);
-      return null;
-    }
-  } catch (err) {
-    console.error("❌ Fehler bei getPayPalApproveLink:", err);
-    return null;
-  }
-}
-
-// ===================
-// Home-Menü
-// ===================
-async function sendHomeMenu(ctx) {
-  const homeText =
-    '🔥 *Willkommen in deiner verbotenen Zone!* 🔥\n\n' +
-    'Bereit für exklusiven Zugang, geheime Inhalte und private Erlebnisse? 😈\n\n' +
-    'Wähle unten, wohin dein nächstes Abenteuer geht…';
-
-  const keyboard = {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '🧾 Menu', callback_data: 'go_menu' }],
-        [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-        [{ text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-        [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
-      ]
-    }
-  };
-
-  if (ctx.updateType === 'callback_query') {
-    return ctx.editMessageText(homeText, keyboard).catch(() => {
-      return ctx.reply(homeText, keyboard);
-    });
-  } else {
-    return ctx.reply(homeText, keyboard);
-  }
-}
-
-// ===================
-// Start-Befehl
+// Start-Kommando
 // ===================
 bot.start(async (ctx) => {
-  const user = {
-    id: ctx.from.id,
-    username: ctx.from.username || null,
-    first_name: ctx.from.first_name || null,
-    last_name: ctx.from.last_name || null,
-    language_code: ctx.from.language_code || null
-  };
+  const { id, username, first_name, last_name, language_code } = ctx.from;
 
-  const { data } = await supabase.from('users').select('id').eq('id', user.id).single();
-  if (!data) {
-    await supabase.from('users').insert([user]);
-    console.log('✅ User gespeichert:', user.id);
-  }
+  // User in DB speichern (falls neu)
+  const { error } = await supabase
+    .from("users")
+    .upsert({
+      id,
+      username,
+      first_name,
+      last_name,
+      language_code,
+      status: "Free",
+      punkte: 0
+    });
+
+  if (error) console.error("❌ Fehler beim Speichern des Users:", error);
 
   await sendHomeMenu(ctx);
 });
 
 // ===================
-// Beispiel: Full Access Pass (1 Monat) – jetzt mit neuer PayPal API
+// Home-Menü Funktion
 // ===================
-bot.action('fullaccess_1m', async (ctx) => {
-  await ctx.editMessageText(
-    '🔥 *Full Access Pass (1 Monat)*\n40GB Galerie – Zugang zu allen exklusiven Inhalten.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'info_fullaccess_1m' }],
-          [{ text: '💰 Preis', callback_data: 'preis_fullaccess_1m' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_fullaccess_1m' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_fullaccess' }]
-        ]
-      }
+async function sendHomeMenu(ctx) {
+  await ctx.reply("🏠 *Willkommen im ChiaraBot!*\n\nWähle eine Kategorie:", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "ℹ️ Info", callback_data: "go_info" }],
+        [{ text: "🧾 Menu", callback_data: "go_menu" }],
+        [{ text: "📜 Regeln", callback_data: "go_regeln" }],
+        [{ text: "💬 Schreib mir", url: "https://t.me/dein_username" }],
+        [{ text: "📢 Mein Kanal", url: "https://t.me/dein_kanal" }],
+        [{ text: "👤 Mein Bereich", callback_data: "mein_bereich" }]
+      ]
     }
-  );
-});
+  });
+}
 
-bot.action('pay_fullaccess_1m', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "FULL_ACCESS", "50.00");
-
-  if (!approveLink) {
-    return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-  }
-
-  await ctx.editMessageText(
-    '💳 *Wähle deine Zahlungsmethode für Full Access Pass (1 Monat):*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
-        ]
-      }
+// ===================
+// Menü-Hauptübersicht (go_menu Action)
+// ===================
+bot.action("go_menu", async (ctx) => {
+  await ctx.editMessageText("🧾 *Menüübersicht*\n\nWähle eine Kategorie:", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💎 VIP Pass", callback_data: "preise_vip" }],
+        [{ text: "🔥 Full Access", callback_data: "preise_fullaccess" }],
+        [{ text: "🥉 Daddy Bronze", callback_data: "preise_daddy_bronze" }],
+        [{ text: "🥈 Daddy Silber", callback_data: "preise_daddy_silber" }],
+        [{ text: "🥇 Daddy Gold", callback_data: "preise_daddy_gold" }],
+        [{ text: "💖 Girlfriend Pass", callback_data: "preise_girlfriend" }],
+        [{ text: "⛓️ Domina Pass", callback_data: "preise_domina" }],
+        [{ text: "🎥 Video Packs", callback_data: "go_videopacks" }],
+        [{ text: "👙 Panty & Socks", callback_data: "go_pantysocks" }],
+        [{ text: "🔙 Zurück", callback_data: "back_home" }]
+      ]
     }
-  );
-});
-
-// ===================
-// Video Pack 5 – neuer Checkout
-// ===================
-bot.action('pay_videos_5', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "VIDEO_PACK_5", "50.00");
-
-  if (!approveLink) {
-    return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-  }
-
-  await ctx.editMessageText(
-    '💳 *Wähle deine Zahlungsmethode für Video Pack 5:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'videos_5' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Video Pack 10
-// ===================
-bot.action('pay_videos_10', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "VIDEO_PACK_10", "90.00");
-
-  if (!approveLink) {
-    return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-  }
-
-  await ctx.editMessageText(
-    '💳 *Wähle deine Zahlungsmethode für Video Pack 10:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'videos_10' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Daddy Bronze
-// ===================
-bot.action('pay_daddy_bronze', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "DADDY_BRONZE", "80.00");
-
-  if (!approveLink) {
-    return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-  }
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Daddy Bronze:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Daddy Silber
-// ===================
-bot.action('pay_daddy_silber', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "DADDY_SILBER", "150.00");
-
-  if (!approveLink) {
-    return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-  }
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Daddy Silber:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Daddy Gold
-// ===================
-bot.action('pay_daddy_gold', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "DADDY_GOLD", "225.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Daddy Gold:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Girlfriend Pass
-// ===================
-bot.action('pay_girlfriend', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "GF_PASS", "150.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Girlfriend Pass:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Domina Pass
-// ===================
-bot.action('pay_domina', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "DOMINA_PASS", "150.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Domina Pass:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_domina' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// VIP Pass
-// ===================
-bot.action('pay_vip', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "VIP_PASS", "40.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle deine Zahlungsmethode für VIP Pass:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_vip' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Custom Video 3 Min
-// ===================
-bot.action('pay_custom3', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "CUSTOM3_PASS", "100.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für 3 Min Custom Video:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'custom_3' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Custom Video 5 Min
-// ===================
-bot.action('pay_custom5', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "CUSTOM5_PASS", "140.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für 5 Min Custom Video:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'custom_5' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Panty
-// ===================
-bot.action('pay_panty', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "PANTY_PASS", "40.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Panty:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'panty_item' }]
-        ]
-      }
-    }
-  );
-});
-
-// ===================
-// Socks
-// ===================
-bot.action('pay_socks', async (ctx) => {
-  const telegramId = ctx.from.id;
-  const approveLink = await getPayPalApproveLink(telegramId, "SOCKS_PASS", "30.00");
-
-  if (!approveLink) return ctx.reply("⚠️ Fehler beim Erstellen der PayPal-Zahlung. Bitte versuche es später erneut.");
-
-  await ctx.editMessageText(
-    '💳 *Wähle Zahlungsmethode für Socks:*',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: approveLink }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink-kredit' }],
-          [{ text: '📱 Apple Pay / Google Pay', url: 'https://sumup.com/deinlink-apple-google' }],
-          [{ text: '🔙 Zurück', callback_data: 'socks_item' }]
-        ]
-      }
-    }
-  );
+  });
 });
 
 // ===================
 // Info-Menü
 // ===================
-bot.action('go_info', async (ctx) => {
-  await ctx.editMessageText('ℹ️ *Info-Menü:*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '👩‍💻 Wer bin ich', callback_data: 'info_wer' }],
-        [{ text: '🌐 Social Media', callback_data: 'info_social' }],
-        [{ text: '🔞 18+ Links', callback_data: 'info_links' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
-    }
-  });
-});
-
-bot.action('info_wer', async (ctx) => {
+bot.action("go_info", async (ctx) => {
   await ctx.editMessageText(
-    '🔥 *ChiaraBadGirl – About Me* 🔥\n\n' +
-    'Hey Baby 😈, ich bin *Chiara*, 26 Jahre jung – mit Wurzeln in 🇱🇺 *Luxemburg* & 🇩🇪 *Germany*.\n\n' +
-    '💦 *Squirt Queen* – ich weiß genau, wie man dich nass macht 😏\n' +
-    '🔥 *BadBiitch* – wild, frech und immer ein bisschen gefährlich\n' +
-    '🎨 *Tätowiert & einzigartig* – Kunst auf meiner Haut und in meinem Leben\n\n' +
-    '📸 *Hier bekommst du*: Exklusive Pics, heiße Videos, private Chats & besondere Sessions\n' +
-    '💎 Dein VIP-Zugang zu einer Welt ohne Grenzen...\n\n' +
-    '⚡ *ChiaraBadGirl – Dein geheimes Vergnügen wartet!* ⚡',
+    "ℹ️ *Informationen*\n\n" +
+    "Willkommen im offiziellen ChiaraBot! 💖\n\n" +
+    "Hier findest du alle Infos zu meinen Angeboten, Preisen und Specials.",
     {
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'go_info' }]
-        ]
+        inline_keyboard: [[{ text: "🔙 Zurück", callback_data: "back_home" }]]
       }
     }
   );
 });
 
 // ===================
-// Social Media Menü
+// Regeln-Menü
 // ===================
-bot.action('info_social', async (ctx) => {
-  await ctx.editMessageText('🌐 *Social Media & Offizielle Seiten*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🌍 Offizielle Website', url: 'https://www.chiarabadgirl.eu' }],
-        [{ text: '📸 Instagram', callback_data: 'instagram_menu' }],
-        [{ text: '🐦 Twitter', url: 'https://www.x.com/chiarabadgirl' }],
-        [{ text: '🎵 TikTok', url: 'https://www.tiktok.com/@biancanerini_offiziell' }],
-        [{ text: '📘 Facebook', url: 'https://www.facebook.com/share/1QLd19Djha/?mibextid=wwXIfr' }],
-        [{ text: '🔙 Zurück', callback_data: 'go_info' }]
-      ]
-    }
-  });
-});
-
-bot.action('instagram_menu', async (ctx) => {
-  await ctx.editMessageText('📸 *Instagram Accounts*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '⭐ Hauptaccount', url: 'https://www.instagram.com/realchiaraoffiziell?igsh=Zmtuc3RwYWg4bzFi&utm_source=qr' }],
-        [{ text: '🛟 Backup Account', url: 'https://www.instagram.com/chiarabadgiirl_offiziell?igsh=MW1tcmw5dWU1c2k0dQ%3D%3D&utm_source=qr' }],
-        [{ text: '🔙 Zurück', callback_data: 'info_social' }]
-      ]
-    }
-  });
-});
-
-// ===================
-// 18+ Links Menü
-// ===================
-bot.action('info_links', async (ctx) => {
-  await ctx.editMessageText('😈 *18+ Accounts & Premium Inhalte*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔥 OnlyFans Sub', url: 'https://www.onlyfans.com/chiarabadg' }],
-        [{ text: '👀 OnlyFans PPV', url: 'https://www.onlyfans.com/chiarabadgirl' }],
-        [{ text: '🥰 MYM', url: 'https://www.mym.fans/chiarabadgirl' }],
-        [{ text: '‼️ 4Based', url: 'https://4based.com/profile/chiarabadgirl' }],
-        [{ text: '🍀 Fanseven', url: 'https://www.fanseven.com/chiarabadgirl' }],
-        [{ text: '🫶🏻 Maloum', url: 'https://app.maloum.com/creator/chiarabadgirl' }],
-        [{ text: '🔙 Zurück', callback_data: 'go_info' }]
-      ]
-    }
-  });
-});
-
-// ===================
-// Regeln
-// ===================
-bot.action('go_regeln', async (ctx) => {
-  await ctx.editMessageText('‼️ *ALLE REGELN:*', {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📜 Was ist erlaubt', callback_data: 'regeln_erlaubt' }],
-        [{ text: '⏱️ Sessions', callback_data: 'regeln_sessions' }],
-        [{ text: '📷 Cam', callback_data: 'regeln_cam' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
-    }
-  });
-});
-
-// ===================
-// Regeln Details
-// ===================
-bot.action('regeln_erlaubt', async (ctx) => {
+bot.action("go_regeln", async (ctx) => {
   await ctx.editMessageText(
-    '📜 *Was ist erlaubt*\n\n' +
-    '✅ Respektvoller Umgang\n' +
-    '✅ Nur legale Inhalte teilen\n' +
-    '✅ Keine unerwünschte Werbung',
+    "📜 *Regeln*\n\n" +
+    "1️⃣ Kein Spam oder Beleidigungen.\n" +
+    "2️⃣ Respektiere andere Mitglieder.\n" +
+    "3️⃣ Kein unerlaubtes Teilen von Inhalten.",
     {
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'go_regeln' }]] }
-    }
-  );
-});
-
-bot.action('regeln_sessions', async (ctx) => {
-  await ctx.editMessageText(
-    '⏱️ *Sessions*\n\n' +
-    'Jede Session ist im Voraus zu bezahlen.\n' +
-    'Dauer & Preis nach Absprache.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'go_regeln' }]] }
-    }
-  );
-});
-
-bot.action('regeln_cam', async (ctx) => {
-  await ctx.editMessageText(
-    '📷 *Cam*\n\n' +
-    'Cam-Sessions sind exklusiv und privat.\n' +
-    'Keine Aufnahme oder Weitergabe erlaubt.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'go_regeln' }]] }
-    }
-  );
-});
-
-// ===================
-// Mein Bereich
-// ===================
-bot.action('mein_bereich', async (ctx) => {
-  const userId = ctx.from.id;
-
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('status, status_start, status_end, punkte')
-    .eq('id', userId)
-    .single();
-
-  if (error || !user) {
-    return ctx.reply("⚠️ Fehler beim Laden deiner Daten.");
-  }
-
-  const statusText = user.status || "Free";
-  const startText = user.status_start || "-";
-  const endText = user.status_end || "-";
-  const punkteText = user.punkte || 0;
-
-  await ctx.editMessageText(
-    `👤 *Mein Bereich*\n\n` +
-    `📌 Status: *${statusText}*\n` +
-    `📅 Start: ${startText}\n` +
-    `📅 Ende: ${endText}\n` +
-    `⭐ Punkte: ${punkteText}`,
-    {
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-        ]
+        inline_keyboard: [[{ text: "🔙 Zurück", callback_data: "back_home" }]]
       }
     }
   );
 });
 
 // ===================
-// Back Home Action
+// Video Packs Untermenü
 // ===================
-bot.action('back_home', async (ctx) => {
+bot.action("go_videopacks", async (ctx) => {
+  await ctx.editMessageText("🎥 *Video Packs*\n\nWähle dein Paket:", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🎬 5 Videos", callback_data: "videos_5" }],
+        [{ text: "🎬 10 Videos", callback_data: "videos_10" }],
+        [{ text: "🎬 15 Videos", callback_data: "videos_15" }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Panty & Socks Untermenü
+// ===================
+bot.action("go_pantysocks", async (ctx) => {
+  await ctx.editMessageText("👙 *Panty & Socks*\n\nWähle dein Produkt:", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🩲 Panty", callback_data: "panty_item" }],
+        [{ text: "🧦 Socks", callback_data: "socks_item" }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Produkt-Handler – Beispiel VIP Pass
+// ===================
+bot.action("preise_vip", async (ctx) => {
+  await ctx.editMessageText("💎 *VIP Pass*\n\nZugang zu allen exklusiven Inhalten für 30 Tage.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (50€)", url: `https://${RAILWAY_DOMAIN}/buy/VIP%20Pass/${ctx.from.id}/50` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+bot.action("preise_fullaccess", async (ctx) => {
+  await ctx.editMessageText("🔥 *Full Access*\n\nAlle Inhalte ohne Limit für 30 Tage.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (40€)", url: `https://${RAILWAY_DOMAIN}/buy/Full%20Access/${ctx.from.id}/40` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+bot.action("preise_daddy_bronze", async (ctx) => {
+  await ctx.editMessageText("🥉 *Daddy Bronze*\n\n30 Tage Bronze-Status.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (20€)", url: `https://${RAILWAY_DOMAIN}/buy/Daddy%20Bronze/${ctx.from.id}/20` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+bot.action("preise_daddy_silber", async (ctx) => {
+  await ctx.editMessageText("🥈 *Daddy Silber*\n\n30 Tage Silber-Status.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (30€)", url: `https://${RAILWAY_DOMAIN}/buy/Daddy%20Silber/${ctx.from.id}/30` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+bot.action("preise_daddy_gold", async (ctx) => {
+  await ctx.editMessageText("🥇 *Daddy Gold*\n\n30 Tage Gold-Status.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (60€)", url: `https://${RAILWAY_DOMAIN}/buy/Daddy%20Gold/${ctx.from.id}/60` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+bot.action("preise_girlfriend", async (ctx) => {
+  await ctx.editMessageText("💖 *Girlfriend Pass*\n\n30 Tage Girlfriend-Status.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (35€)", url: `https://${RAILWAY_DOMAIN}/buy/Girlfriend%20Pass/${ctx.from.id}/35` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+bot.action("preise_domina", async (ctx) => {
+  await ctx.editMessageText("⛓️ *Domina Pass*\n\n30 Tage Domina-Status.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (40€)", url: `https://${RAILWAY_DOMAIN}/buy/Domina%20Pass/${ctx.from.id}/40` }],
+        [{ text: "🔙 Zurück", callback_data: "go_menu" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Video Packs
+// ===================
+bot.action("videos_5", async (ctx) => {
+  await ctx.editMessageText("🎬 *Video Pack 5*\n\n5 exklusive Videos.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (15€)", url: `https://${RAILWAY_DOMAIN}/buy/Video%20Pack%205/${ctx.from.id}/15` }],
+        [{ text: "🔙 Zurück", callback_data: "go_videopacks" }]
+      ]
+    }
+  });
+});
+
+bot.action("videos_10", async (ctx) => {
+  await ctx.editMessageText("🎬 *Video Pack 10*\n\n10 exklusive Videos.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (25€)", url: `https://${RAILWAY_DOMAIN}/buy/Video%20Pack%2010/${ctx.from.id}/25` }],
+        [{ text: "🔙 Zurück", callback_data: "go_videopacks" }]
+      ]
+    }
+  });
+});
+
+bot.action("videos_15", async (ctx) => {
+  await ctx.editMessageText("🎬 *Video Pack 15*\n\n15 exklusive Videos.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (35€)", url: `https://${RAILWAY_DOMAIN}/buy/Video%20Pack%2015/${ctx.from.id}/35` }],
+        [{ text: "🔙 Zurück", callback_data: "go_videopacks" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Panty & Socks
+// ===================
+bot.action("panty_item", async (ctx) => {
+  await ctx.editMessageText("🩲 *Panty*\n\nGetragene Panties.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (50€)", url: `https://${RAILWAY_DOMAIN}/buy/Panty/${ctx.from.id}/50` }],
+        [{ text: "🔙 Zurück", callback_data: "go_pantysocks" }]
+      ]
+    }
+  });
+});
+
+bot.action("socks_item", async (ctx) => {
+  await ctx.editMessageText("🧦 *Socks*\n\nGetragene Socken.", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "💳 Jetzt kaufen (40€)", url: `https://${RAILWAY_DOMAIN}/buy/Socks/${ctx.from.id}/40` }],
+        [{ text: "🔙 Zurück", callback_data: "go_pantysocks" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Zurück zum Hauptmenü
+// ===================
+bot.action("back_home", async (ctx) => {
   await sendHomeMenu(ctx);
 });
 
 // ===================
-// Serverstart & Supabase-Check
+// Mein Bereich – Status, Punkte & Laufzeit
 // ===================
-app.listen(8080, () => {
-  console.log(`🚀 Bot läuft über Webhook auf Port 8080`);
+bot.action("mein_bereich", async (ctx) => {
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("status, punkte, pass_ablaufdatum")
+    .eq("id", ctx.from.id)
+    .single();
+
+  if (error || !user) {
+    console.error("❌ Fehler beim Abrufen von Mein Bereich:", error);
+    return ctx.answerCbQuery("Fehler beim Laden deiner Daten.");
+  }
+
+  // Restlaufzeit berechnen
+  let restlaufText = "—";
+  if (user.pass_ablaufdatum) {
+    const ablauf = new Date(user.pass_ablaufdatum);
+    const diffTage = Math.ceil((ablauf - Date.now()) / (1000 * 60 * 60 * 24));
+    if (diffTage > 0) {
+      restlaufText = `${diffTage} Tage`;
+    } else {
+      restlaufText = "abgelaufen";
+    }
+  }
+
+  await ctx.editMessageText(
+    `👤 *Mein Bereich*\n\n` +
+    `📌 Status: *${mdEscape(user.status || "Free")}*\n` +
+    `⭐ Punkte: *${user.punkte || 0}*\n` +
+    `⏳ Laufzeit: *${mdEscape(restlaufText)}*`,
+    {
+      parse_mode: "MarkdownV2",
+      reply_markup: {
+        inline_keyboard: [[{ text: "🔙 Zurück", callback_data: "back_home" }]]
+      }
+    }
+  );
 });
 
-// Verbindungstest zu Supabase
-(async () => {
-  try {
-    const { data, error } = await supabase.from('users').select('id');
-    if (error) {
-      console.error("❌ Fehler bei Supabase Verbindung:", error.message);
-    } else {
-      console.log(`✅ Supabase Verbindung OK – aktuell ${data.length} User gespeichert.`);
-    }
-  } catch (err) {
-    console.error("❌ Unerwarteter Fehler bei Supabase Test:", err);
-  }
-})();
+// ===================
+// Fallback bei unbekannten Actions
+// ===================
+bot.on("callback_query", async (ctx) => {
+  await ctx.answerCbQuery("❌ Unbekannte Aktion.");
+});
 
 // ===================
-// Fallback: Unbekannte Befehle
+// Admin-ID
 // ===================
-bot.on('message', async (ctx) => {
-  if (ctx.message.text && ctx.message.text.startsWith('/')) {
-    return ctx.reply("⚠️ Unbekannter Befehl. Bitte nutze das Menü.");
+const ADMIN_ID = 5647887831;
+
+// ===================
+// /admin Befehl
+// ===================
+bot.command("admin", async (ctx) => {
+  if (ctx.from.id !== ADMIN_ID) return;
+  await ctx.reply("🛠 *Admin-Menü*", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📊 Statistik", callback_data: "admin_stats" }],
+        [{ text: "📢 Broadcast starten", callback_data: "admin_broadcast_info" }],
+        [{ text: "🔙 Zurück", callback_data: "back_home" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Admin: Statistik
+// ===================
+bot.action("admin_stats", async (ctx) => {
+  if (ctx.from.id !== ADMIN_ID) return;
+  const { count, error } = await supabase
+    .from("users")
+    .select("*", { count: "exact", head: true });
+
+  if (error) {
+    console.error("❌ Fehler bei Statistik:", error);
+    return ctx.answerCbQuery("Fehler bei Statistik.");
   }
+
+  await ctx.editMessageText(`📊 *Statistik*\n\n👥 Nutzer insgesamt: *${count}*`, {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [[{ text: "🔙 Zurück", callback_data: "admin_menu" }]]
+    }
+  });
+});
+
+// ===================
+// Admin: Broadcast Info
+// ===================
+bot.action("admin_broadcast_info", async (ctx) => {
+  if (ctx.from.id !== ADMIN_ID) return;
+  await ctx.editMessageText(
+    "📢 *Broadcast starten*\n\n" +
+    "Antworte auf diese Nachricht mit deinem Broadcast-Text.",
+    {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [[{ text: "🔙 Zurück", callback_data: "admin_menu" }]]
+      }
+    }
+  );
+  ctx.session = { waitingForBroadcast: true };
+});
+
+// ===================
+// Broadcast senden
+// ===================
+bot.on("text", async (ctx, next) => {
+  if (ctx.from.id !== ADMIN_ID || !ctx.session?.waitingForBroadcast) return next();
+
+  const { data: users } = await supabase.from("users").select("id");
+  let success = 0;
+  let failed = 0;
+
+  for (const u of users) {
+    try {
+      await bot.telegram.sendMessage(u.id, ctx.message.text, { parse_mode: "Markdown" });
+      success++;
+    } catch {
+      failed++;
+    }
+  }
+
+  await ctx.reply(`✅ Gesendet an ${success} Nutzer\n❌ Fehlgeschlagen: ${failed}`);
+  ctx.session.waitingForBroadcast = false;
+});
+
+// ===================
+// Admin-Menü Zurück
+// ===================
+bot.action("admin_menu", async (ctx) => {
+  if (ctx.from.id !== ADMIN_ID) return;
+  await ctx.editMessageText("🛠 *Admin-Menü*", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📊 Statistik", callback_data: "admin_stats" }],
+        [{ text: "📢 Broadcast starten", callback_data: "admin_broadcast_info" }],
+        [{ text: "🔙 Zurück", callback_data: "back_home" }]
+      ]
+    }
+  });
+});
+
+// ===================
+// Server starten
+// ===================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server läuft auf Port ${PORT}`);
 });
