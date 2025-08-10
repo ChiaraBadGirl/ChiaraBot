@@ -1831,6 +1831,28 @@ function markProcessed(id) {
   return true;                      // true = erstmals verarbeitet
 }
 
+// === DB-Idempotenz (überlebt Neustarts) ===
+async function claimEvent(eventId, eventType) {
+  try {
+    if (!eventId) return false;
+    const { error } = await supabase
+      .from('processed_webhooks')
+      .insert({ event_id: eventId, event_type: eventType });
+    if (error) {
+      // 23505 = duplicate key
+      if (error.code === '23505' || /duplicate key/i.test(error.message)) {
+        return false;
+      }
+      console.error("❌ DB-Idempotenz-Insert fehlgeschlagen:", error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("❌ claimEvent Exception:", e);
+    return false;
+  }
+}
+
 const unifiedPaypalWebhook = async (req, res) => {
   try {
     const rawBody = Buffer.isBuffer(req.body)
@@ -1854,6 +1876,12 @@ const unifiedPaypalWebhook = async (req, res) => {
       // Idempotenz nur hier (nicht bei APPROVED)
       const capture = event?.resource;
       const captureId = capture?.id;
+      // DB-Idempotenz (überlebt Deploys)
+      const firstTime = await claimEvent(captureId, "PAYMENT.CAPTURE.COMPLETED");
+      if (!firstTime) {
+        console.log("↩️ Bereits in DB verarbeitet:", captureId);
+        return res.status(200).send("ok (duplicate)");
+      }
       if (!markProcessed(captureId)) {
         console.log("↩️ Bereits verarbeitet (CAPTURE):", captureId);
         return res.status(200).send("ok (duplicate)");
