@@ -24,6 +24,41 @@ let environment = new paypal.core.LiveEnvironment(
     PAYPAL_CLIENT_SECRET
 );
 let client = new paypal.core.PayPalHttpClient(environment);
+// --- PayPal Webhook-Signatur prüfen (muss vor den Routes stehen)
+const PAYPAL_API_BASE = (environment instanceof paypal.core.SandboxEnvironment)
+  ? "https://api-m.sandbox.paypal.com"
+  : "https://api-m.paypal.com";
+
+async function verifyPaypalSignature(req) {
+  try {
+    if (!PAYPAL_WEBHOOK_ID) {
+      console.warn("⚠️ PAYPAL_WEBHOOK_ID nicht gesetzt – Signaturprüfung wird übersprungen.");
+      return true;
+    }
+    const h = req.headers;
+    const body = {
+      transmission_id: h["paypal-transmission-id"],
+      transmission_time: h["paypal-transmission-time"],
+      cert_url: h["paypal-cert-url"],
+      auth_algo: h["paypal-auth-algo"],
+      transmission_sig: h["paypal-transmission-sig"],
+      webhook_id: PAYPAL_WEBHOOK_ID,
+      webhook_event: req.body
+    };
+    const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
+    const r = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}` },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    return data?.verification_status === "SUCCESS";
+  } catch (e) {
+    console.error("❌ Fehler bei verifyPaypalSignature:", e);
+    return false;
+  }
+}
+
 
 // === PayPal: SKU-Config & Helpers (modern Checkout) ===
 const skuConfig = {
