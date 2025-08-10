@@ -1819,6 +1819,15 @@ async function verifyPaypalSignatureRAW(req, rawBody) {
   }
 }
 
+// === In-Memory Idempotenz nur für CAPTURE-Events ===
+const __processedCaptureIds = new Set();
+function markProcessed(id) {
+  if (!id) return false;            // ungültig -> als "schon verarbeitet" behandeln
+  if (__processedCaptureIds.has(id)) return false; // schon gesehen
+  __processedCaptureIds.add(id);    // neu markieren
+  return true;                      // true = erstmals verarbeitet
+}
+
 const unifiedPaypalWebhook = async (req, res) => {
   try {
     const rawBody = Buffer.isBuffer(req.body)
