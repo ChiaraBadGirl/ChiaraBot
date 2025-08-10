@@ -1882,3 +1882,14 @@ app.post("/webhook/paypal", express.text({ type: "*/*" }), _paypalWebhookHandler
 app.post("/paypal/webhook", express.text({ type: "*/*" }), _paypalWebhookHandler);
 
 
+
+
+// --- Server starten (Railway PORT)
+app.listen(PORT, () => {
+  console.log(`🚀 Server läuft und hört auf PORT ${PORT}`);
+});
+
+
+// Healthchecks für Webhook-Pfade (GET)
+app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
+app.get("/paypal/webhook", (req, res) => res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
