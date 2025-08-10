@@ -506,6 +506,94 @@ app.post("/webhook/paypal", express.json(), async (req, res) => {
         produktname: productName
       });
 
+
+app.post("/paypal/webhook", express.json(), async (req, res) => {
+  // 🚨 Signaturprüfung (empfohlen)
+  const valid = await verifyPaypalSignature(req);
+  if (!valid) {
+    return res.status(400).send("Invalid signature");
+  }
+
+  try {
+    const webhookEvent = req.body;
+    console.log("🔔 Live Webhook Event:", webhookEvent.event_type);
+
+    if (webhookEvent.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      const capture = webhookEvent.resource;
+
+      // 📌 Daten extrahieren
+      const telegramId = capture.custom_id;
+      const payerEmail = capture.payer.email_address;
+      const amount = parseFloat(capture.amount.value);
+      const currency = capture.amount.currency_code;
+      const productName = capture?.invoice_id || capture?.note_to_payer || "Unbekanntes Produkt";
+
+      console.log(`✅ Zahlung erfolgreich: ${payerEmail} - ${amount} ${currency} für Produkt ${productName}`);
+
+      // 🔹 Laufzeit-Mapping
+      const laufzeitMapping = {
+        VIP_PASS: 30,
+        FULL_ACCESS: 30,
+        DADDY_BRONZE: 30,
+        DADDY_SILBER: 30,
+        DADDY_GOLD: 30,
+        GF_PASS: 7,
+        DOMINA_PASS: 7,
+        VIDEO_PACK_5: 9999,
+        VIDEO_PACK_10: 9999,
+        VIDEO_PACK_15: 9999,
+        CUSTOM3_PASS: 9999,
+        CUSTOM5_PASS: 9999,
+        PANTY_PASS: 0,
+        SOCKS_PASS: 0
+      };
+
+      // 🔹 Status-Code bestimmen
+      let statusCode = productName.toUpperCase();
+      if (statusCode.includes("FULL")) statusCode = "FULL";
+      if (statusCode.includes("VIP")) statusCode = "VIP";
+      if (statusCode.includes("DADDY_BRONZE")) statusCode = "DADDY_BRONZE";
+      if (statusCode.includes("DADDY_SILBER")) statusCode = "DADDY_SILBER";
+      if (statusCode.includes("DADDY_GOLD")) statusCode = "DADDY_GOLD";
+      if (statusCode.includes("GF_PASS")) statusCode = "GF";
+      if (statusCode.includes("DOMINA_PASS")) statusCode = "SLAVE";
+
+      // 🔹 Dauer ermitteln
+      const durationDays = laufzeitMapping[statusCode] || 30;
+
+      // 🔹 Start & Enddatum berechnen
+      const startDate = new Date();
+      const endDate = new Date();
+      if (durationDays > 0 && durationDays < 9999) {
+        endDate.setDate(startDate.getDate() + durationDays);
+      } else if (durationDays >= 9999) {
+        endDate.setFullYear(startDate.getFullYear() + 50); // Lifetime
+      } else {
+        endDate.setDate(startDate.getDate()); // Kein Ablaufdatum
+      }
+
+      // 🔹 Punkteberechnung (15 % vom Betrag)
+      const punkte = Math.floor(amount * 0.15);
+
+      // 🔹 Status & Laufzeit in Supabase speichern
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({
+          status: statusCode,
+          status_start: startDate.toISOString().split("T")[0],
+          status_end: endDate.toISOString().split("T")[0]
+        })
+        .eq("id", telegramId);
+
+      if (updateError) console.error("❌ Fehler bei Status-Update:", updateError);
+
+      // 🔹 Punkte & Produkt speichern
+      const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
+        userid: telegramId,
+        punkteanzahl: punkte,
+        produktname: productName
+      });
+
       if (rpcError) console.error("❌ Fehler bei Punkte-Update:", rpcError);
 
       // 🔹 Telegram Nachricht an User
