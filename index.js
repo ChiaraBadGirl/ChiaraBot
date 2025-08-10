@@ -25,45 +25,11 @@ let environment = new paypal.core.LiveEnvironment(
 );
 let client = new paypal.core.PayPalHttpClient(environment);
 
-// --- PayPal Webhook-Signatur prüfen (vor den Routes definiert)
-const PAYPAL_API_BASE = (environment instanceof paypal.core.SandboxEnvironment)
-  ? "https://api-m.sandbox.paypal.com"
-  : "https://api-m.paypal.com";
-
-async function verifyPaypalSignature(req) {
-  try {
-    if (!PAYPAL_WEBHOOK_ID) {
-      console.warn("⚠️ PAYPAL_WEBHOOK_ID nicht gesetzt – Signaturprüfung wird übersprungen.");
-      return true;
-    }
-    const headers = req.headers || {};
-    const verifyBody = {
-      transmission_id: headers["paypal-transmission-id"],
-      transmission_time: headers["paypal-transmission-time"],
-      cert_url: headers["paypal-cert-url"],
-      auth_algo: headers["paypal-auth-algo"],
-      transmission_sig: headers["paypal-transmission-sig"],
-      webhook_id: PAYPAL_WEBHOOK_ID,
-      webhook_event: req.body
-    };
-    const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
-    const resp = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}` },
-      body: JSON.stringify(verifyBody)
-    });
-    const data = await resp.json();
-    return data?.verification_status === "SUCCESS";
-  } catch (e) {
-    console.error("❌ Fehler bei verifyPaypalSignature:", e);
-    return false;
-  }
-}
-
-
 // === PayPal: SKU-Config & Helpers (modern Checkout) ===
 const skuConfig = {
-  VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
+  
+  TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 },
+VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
   FULL_ACCESS:   { name: "Full Access (1M)",    price: "50.00", status: "FULL",           days: 30 },
   VIDEO_PACK_5:  { name: "Video Pack 5",        price: "50.00", status: "VIDEO_PACK_5",  days: 9999 },
   VIDEO_PACK_10: { name: "Video Pack 10",       price: "90.00", status: "VIDEO_PACK_10", days: 9999 },
@@ -260,7 +226,7 @@ app.get("/pay/:sku", async (req, res) => {
         items: [{
           name: cfg.name,
           quantity: "1",
-          unit_amount: { currency_code: "EUR", value: cfg.price, breakdown: { item_total: { currency_code: "EUR", value: cfg.price } } }
+          unit_amount: { currency_code: "EUR", value: cfg.price }
         }]
       }],
       application_context: {
