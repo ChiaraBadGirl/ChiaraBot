@@ -3,6 +3,8 @@ import { Telegraf, Markup } from "telegraf";
 import { supabase } from "./supabaseClient.js";
 import paypal from '@paypal/checkout-server-sdk';
 
+import paypalWebhookRouter from "./paypalWebhookRouter.js";
+
 // Variablen aus Railway
 const BOT_TOKEN = process.env.BOT_TOKEN || "DEIN_BOT_TOKEN";
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "DEIN_LIVE_CLIENT_ID";
@@ -239,6 +241,12 @@ async function activatePass(ctx, statusCode, durationDays, backCallback) {
 
 // Express App für Webhook
 const app = express();
+// Simple health check
+app.get("/_health", (req,res)=>res.status(200).send("ok"));
+
+// PayPal Webhook Router (RAW-Body, vor globalen Parsern)
+app.use(paypalWebhookRouter);
+
 app.use(bot.webhookCallback(`/webhook/${WEBHOOK_SECRET}`));
 
 // Webhook bei Telegram registrieren
@@ -1967,3 +1975,4 @@ app.post("/paypal/webhook", paypalRaw, paypalWebhookHandler);
 
 
 console.log("verifyPaypalSignatureRAW =", typeof verifyPaypalSignatureRAW, "debug=", PAYPAL_DEBUG_WEBHOOK, "env=", PAYPAL_ENVIRONMENT);
+app.listen(PORT, () => console.log(`🚀 Server läuft und hört auf PORT ${PORT}`));
