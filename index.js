@@ -453,6 +453,9 @@ app.get("/cancel", async (req, res) => {
 });
 
 // ✅ Webhook-Endpoint für PayPal Live
+
+// Sanity-Log: prüfen ob Funktion definiert ist
+console.log("verifyPaypalSignature =", typeof verifyPaypalSignature);
 app.post("/webhook/paypal", express.json(), async (req, res) => {
   // 🚨 Signaturprüfung
   const valid = await verifyPaypalSignature(req);
