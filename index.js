@@ -1725,116 +1725,12 @@ console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
 
 
 // === Webhook Route: /webhook/paypal (mit frühem Logging & Signaturprüfung) ===
-app.post("/webhook/paypal", express.text({ type: "*/*" }), async (req, res) => {
-  try {
-    console.log("📩 Webhook HIT /webhook/paypal @", new Date().toISOString());
-    console.log("Headers:", req.headers);
-    console.log("Body RAW:", (req.body || "").toString());
 
-    let event;
-    try {
-      event = req.body ? JSON.parse(req.body) : {}
-    } catch (e) {
-      console.warn("⚠️ Webhook JSON parse error:", e && e.message);
-      return res.status(400).send("bad json");
-    }
-
-    const valid = await verifyPaypalSignature(req.headers, event);
-    console.log("🧾 Signatur gültig?", valid);
-    if (!valid) return res.status(400).send("Invalid signature");
-
-    console.log("🔔 PayPal Webhook Event:", event.event_type);
-
-    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-      const capture = event.resource;
-      const amount = parseFloat(capture?.amount?.value || "0");
-      const currency = capture?.amount?.currency_code || "EUR";
-      let telegramId = capture?.custom_id || null;
-      let sku = null;
-      const orderId = capture?.supplementary_data?.related_ids?.order_id;
-      if (orderId) {
-        try {
-          const getReq = new paypal.orders.OrdersGetRequest(orderId);
-          const orderRes = await client.execute(getReq);
-          const pu = orderRes?.result?.purchase_units?.[0];
-          if (pu) {
-            telegramId = telegramId || pu.custom_id;
-            sku = pu.reference_id;
-          }
-        } catch (e) {
-          console.error("⚠️ Konnte Order nicht laden:", e);
-        }
-      }
-      if (telegramId && sku) {
-        await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount: amount.toFixed(2), currency });
-      } else {
-        console.error("❌ Webhook: telegramId oder sku fehlen.", { telegramId, sku });
-      }
-    }
-
-    return res.status(200).send("OK");
-  } catch (err) {
-    console.error("❌ Fehler im PayPal Webhook:", err);
-    return res.status(500).send("ERROR");
-  }
-});
 
 
 
 // === Webhook Route: /paypal/webhook (mit frühem Logging & Signaturprüfung) ===
-app.post("/paypal/webhook", express.text({ type: "*/*" }), async (req, res) => {
-  try {
-    console.log("📩 Webhook HIT /paypal/webhook @", new Date().toISOString());
-    console.log("Headers:", req.headers);
-    console.log("Body RAW:", (req.body || "").toString());
 
-    let event;
-    try {
-      event = req.body ? JSON.parse(req.body) : {}
-    } catch (e) {
-      console.warn("⚠️ Webhook JSON parse error:", e && e.message);
-      return res.status(400).send("bad json");
-    }
-
-    const valid = await verifyPaypalSignature(req.headers, event);
-    console.log("🧾 Signatur gültig?", valid);
-    if (!valid) return res.status(400).send("Invalid signature");
-
-    console.log("🔔 PayPal Webhook Event:", event.event_type);
-
-    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-      const capture = event.resource;
-      const amount = parseFloat(capture?.amount?.value || "0");
-      const currency = capture?.amount?.currency_code || "EUR";
-      let telegramId = capture?.custom_id || null;
-      let sku = null;
-      const orderId = capture?.supplementary_data?.related_ids?.order_id;
-      if (orderId) {
-        try {
-          const getReq = new paypal.orders.OrdersGetRequest(orderId);
-          const orderRes = await client.execute(getReq);
-          const pu = orderRes?.result?.purchase_units?.[0];
-          if (pu) {
-            telegramId = telegramId || pu.custom_id;
-            sku = pu.reference_id;
-          }
-        } catch (e) {
-          console.error("⚠️ Konnte Order nicht laden:", e);
-        }
-      }
-      if (telegramId && sku) {
-        await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount: amount.toFixed(2), currency });
-      } else {
-        console.error("❌ Webhook: telegramId oder sku fehlen.", { telegramId, sku });
-      }
-    }
-
-    return res.status(200).send("OK");
-  } catch (err) {
-    console.error("❌ Fehler im PayPal Webhook:", err);
-    return res.status(500).send("ERROR");
-  }
-});
 // === Healthchecks (GET) für schnellen Test im Browser ===
 app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
 app.get("/paypal/webhook", (req, res) => res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
@@ -1878,51 +1774,44 @@ const _paypalWebhookHandler = async (req, res) => {
 };
 
 // POST-Routen (raw body, damit Signatur stimmt)
-app.post("/webhook/paypal", express.text({ type: "*/*" }), _paypalWebhookHandler);
-app.post("/paypal/webhook", express.text({ type: "*/*" }), _paypalWebhookHandler);
 
 
+// === Health Endpoints ===
+if (typeof app.get === 'function') {
+  app.get("/_health", (req, res) => res.status(200).send("ok"));
+  app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
+  app.get("/paypal/webhook", (req, res) => res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
+}
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`🚀 Server läuft und hört auf PORT ${PORT}`);
-});
+// === PayPal Webhook (RAW body, early logging, optional debug-bypass) ===
+const paypalRaw = express.raw({ type: "application/json" });
 
-app.get("/_health", (req, res) => res.status(200).send("ok"));
-
-
-// --- SAFE Webhook endpoints (raw body, early logs) ---
-const PAYPAL_DEBUG_WEBHOOK = (process.env.PAYPAL_DEBUG_WEBHOOK === "1" || process.env.PAYPAL_DEBUG_WEBHOOK === "true");
-const PAYPAL_ENVIRONMENT = (process.env.PAYPAL_ENVIRONMENT === "sandbox") ? "sandbox" : "live";
-const PAYPAL_API_BASE = PAYPAL_ENVIRONMENT === "live" ? "https://api.paypal.com" : "https://api.sandbox.paypal.com";
-const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
-
-app.get("/webhook/paypal", (req,res)=> res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
-app.get("/paypal/webhook", (req,res)=> res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
+function __debugFlag() {
+  return process.env.PAYPAL_DEBUG_WEBHOOK === "1" || process.env.PAYPAL_DEBUG_WEBHOOK === "true";
+}
 
 async function verifyPaypalSignatureRAW(req, rawBody) {
   try {
-    if (!PAYPAL_WEBHOOK_ID) {
-      console.warn("⚠️ PAYPAL_WEBHOOK_ID fehlt – Debug-Bypass:", PAYPAL_DEBUG_WEBHOOK);
-      return true; // nicht blockieren
-    }
+    const base = (process.env.PAYPAL_ENVIRONMENT === "live")
+      ? "https://api.paypal.com"
+      : "https://api.sandbox.paypal.com";
     const auth = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString("base64");
-    const payload = {
+    const body = {
       transmission_id: req.headers["paypal-transmission-id"],
       transmission_time: req.headers["paypal-transmission-time"],
       cert_url: req.headers["paypal-cert-url"],
       auth_algo: req.headers["paypal-auth-algo"],
       transmission_sig: req.headers["paypal-transmission-sig"],
-      webhook_id: PAYPAL_WEBHOOK_ID,
+      webhook_id: process.env.PAYPAL_WEBHOOK_ID || "",
       webhook_event: JSON.parse(rawBody || "{}")
     };
-    const resp = await fetch(`${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`, {
+    const r = await fetch(`${base}/v1/notifications/verify-webhook-signature`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}` },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(body)
     });
-    const data = await resp.json();
-    console.log("🔎 Verify status:", resp.status, "resp:", data);
+    const data = await r.json();
+    console.log("🔎 Verify status:", r.status, "resp:", data);
     return data?.verification_status === "SUCCESS";
   } catch (e) {
     console.error("❌ verifyPaypalSignatureRAW error:", e);
@@ -1930,26 +1819,51 @@ async function verifyPaypalSignatureRAW(req, rawBody) {
   }
 }
 
-const paypalRaw = express.raw({ type: "application/json" });
-
-const _paypalHandler = async (req, res) => {
+const unifiedPaypalWebhook = async (req, res) => {
   try {
-    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body || "");
-    console.log(`📩 Webhook HIT ${req.path} @`, new Date().toISOString());
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body.toString("utf8")
+      : (typeof req.body === "string" ? req.body : (req.body ? JSON.stringify(req.body) : ""));
+
+    console.log(`📩 Webhook HIT ${req.path} @ ${new Date().toISOString()}`);
     console.log("Headers:", req.headers);
-    console.log("Body RAW:", rawBody.slice(0, 2000)); // limit output
-    const valid = PAYPAL_DEBUG_WEBHOOK ? true : await verifyPaypalSignatureRAW(req, rawBody);
+    console.log("Body RAW:", rawBody && rawBody.slice(0, 5000));
+
+    const valid = __debugFlag() ? true : await verifyPaypalSignatureRAW(req, rawBody);
     console.log("🧾 Signatur gültig?", valid);
-    if (!valid) return res.status(200).send("IGNORED_INVALID_SIGNATURE");
-    // Minimal processing
-    res.status(200).send("OK");
+
+    if (!valid) {
+      return res.status(200).send("IGNORED_INVALID_SIGNATURE");
+    }
+
+    const event = rawBody ? JSON.parse(rawBody) : {};
+
+    if (event?.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      console.log("💸 PAYMENT.CAPTURE.COMPLETED:", event?.resource?.id);
+      // TODO: hier deine Fulfillment-Logik (Punkte gutschreiben etc.)
+    } else {
+      console.log("ℹ️ Event:", event?.event_type);
+    }
+
+    return res.status(200).send("OK");
   } catch (err) {
-    console.error("❌ Fehler im Webhook:", err);
-    return res.status(200).send("IGNORED_ERROR");
+    console.error("❌ Fehler im Webhook-Handler:", err);
+    return res.status(500).send("ERROR");
   }
 };
 
-// Mount routes LAST to avoid body-parser interference
-app.post("/webhook/paypal", paypalRaw, _paypalHandler);
-app.post("/paypal/webhook", paypalRaw, _paypalHandler);
+if (typeof app.post === 'function') {
+  app.post("/webhook/paypal", paypalRaw, unifiedPaypalWebhook);
+  app.post("/paypal/webhook", paypalRaw, unifiedPaypalWebhook);
+}
 
+// === Ensure server listening ===
+if (typeof PORT === 'undefined') {
+  globalThis.PORT = process.env.PORT || 8080;
+}
+if (!globalThis.__LISTENING__) {
+  app.listen(PORT, () => {
+    globalThis.__LISTENING__ = true;
+    console.log("🚀 Server läuft und hört auf PORT", PORT, "—", "2025-08-10T19:21:18.010409Z");
+  });
+}
