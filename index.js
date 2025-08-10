@@ -1849,12 +1849,45 @@ const unifiedPaypalWebhook = async (req, res) => {
 
     if (event?.event_type === "PAYMENT.CAPTURE.COMPLETED") {
       // Idempotenz nur hier (nicht bei APPROVED)
+      const capture = event?.resource;
+      const captureId = capture?.id;
       if (!markProcessed(captureId)) {
         console.log("↩️ Bereits verarbeitet (CAPTURE):", captureId);
         return res.status(200).send("ok (duplicate)");
       }
-      console.log("💸 PAYMENT.CAPTURE.COMPLETED:", event?.resource?.id);
-      // TODO: hier deine Fulfillment-Logik (Punkte gutschreiben etc.)
+
+      // Daten extrahieren
+      const telegramId = String(capture?.custom_id || "").trim();
+      const amount = capture?.amount?.value;
+      const currency = capture?.amount?.currency_code;
+
+      // SKU aus zugehöriger Order holen (reference_id)
+      let sku = null;
+      try {
+        const orderId = capture?.supplementary_data?.related_ids?.order_id;
+        if (orderId) {
+          const getReq = new paypal.orders.OrdersGetRequest(orderId);
+          const getRes = await client.execute(getReq);
+          sku = getRes?.result?.purchase_units?.[0]?.reference_id
+             || getRes?.result?.purchase_units?.[0]?.description
+             || null;
+        }
+      } catch (e) {
+        console.warn("⚠️ Konnte Order nicht abrufen, fahre fort ohne SKU:", e.message || e);
+      }
+
+      console.log("💸 PAYMENT.CAPTURE.COMPLETED:", captureId, "-> user", telegramId, "sku", sku);
+
+      if (!sku || !skuConfig[sku]) {
+        console.log(`ℹ️ Unbekannte oder fehlende SKU "${sku}" – Fulfillment wird übersprungen (nur Log).`);
+        return res.status(200).send("OK");
+      }
+
+      try {
+        await fulfillOrder({ telegramId, sku, amount, currency });
+      } catch (e) {
+        console.error("❌ Fehler bei fulfillOrder (CAPTURE):", e);
+      }
     } else {
       console.log("ℹ️ Event:", event?.event_type);
     }
