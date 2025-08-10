@@ -23,6 +23,79 @@ let environment = new paypal.core.LiveEnvironment(
 );
 let client = new paypal.core.PayPalHttpClient(environment);
 
+// === PayPal: SKU-Config & Helpers (modern Checkout) ===
+const skuConfig = {
+  VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
+  FULL_ACCESS:   { name: "Full Access (1M)",    price: "50.00", status: "FULL",           days: 30 },
+  VIDEO_PACK_5:  { name: "Video Pack 5",        price: "50.00", status: "VIDEO_PACK_5",  days: 9999 },
+  VIDEO_PACK_10: { name: "Video Pack 10",       price: "90.00", status: "VIDEO_PACK_10", days: 9999 },
+  VIDEO_PACK_15: { name: "Video Pack 15",       price: "120.00",status: "VIDEO_PACK_15", days: 9999 },
+  DADDY_BRONZE:  { name: "Daddy Bronze",        price: "80.00", status: "DADDY_BRONZE",  days: 30 },
+  DADDY_SILBER:  { name: "Daddy Silber",        price: "150.00",status: "DADDY_SILBER",  days: 30 },
+  DADDY_GOLD:    { name: "Daddy Gold",          price: "225.00",status: "DADDY_GOLD",    days: 30 },
+  GF_PASS:       { name: "Girlfriend Pass",     price: "150.00",status: "GF",             days: 7  },
+  DOMINA_PASS:   { name: "Domina / Slave Pass", price: "150.00",status: "SLAVE",          days: 7  },
+  CUSTOM3_PASS:  { name: "Custom Video 3 Min",  price: "100.00",status: "CUSTOM3_PASS",  days: 9999 },
+  CUSTOM5_PASS:  { name: "Custom Video 5 Min",  price: "140.00",status: "CUSTOM5_PASS",  days: 9999 },
+  PANTY_PASS:    { name: "Panty",               price: "40.00", status: "PANTY_PASS",    days: 0   },
+  SOCKS_PASS:    { name: "Socks",               price: "30.00", status: "SOCKS_PASS",    days: 0   }
+};
+
+function payUrl(sku, telegramId) {
+  return `https://${RAILWAY_DOMAIN}/pay/${sku}?tid=${telegramId}`;
+}
+
+// Idempotentes Fulfillment an EINER Stelle
+async function fulfillOrder({ telegramId, sku, amount, currency }) {
+  const cfg = skuConfig[sku];
+  if (!cfg) throw new Error(`Unbekannte SKU: ${sku}`);
+
+  const startDate = new Date();
+  const endDate = new Date();
+  if (cfg.days > 0 && cfg.days < 9999) {
+    endDate.setDate(startDate.getDate() + cfg.days);
+  } else if (cfg.days >= 9999) {
+    endDate.setFullYear(startDate.getFullYear() + 50); // Lifetime
+  }
+
+  const punkte = Math.floor(parseFloat(amount || cfg.price) * 0.15);
+
+  const { error: updateError } = await supabase
+    .from("users")
+    .update({
+      status: cfg.status,
+      status_start: startDate.toISOString().split("T")[0],
+      status_end: endDate.toISOString().split("T")[0],
+    })
+    .eq("id", telegramId);
+
+  if (updateError) console.error("❌ Fehler bei Status-Update:", updateError);
+
+  // Punkte + Produkt RPC
+  const { error: rpcError } = await supabase.rpc("increment_punkte_und_produkt", {
+    userid: telegramId,
+    punkteanzahl: punkte,
+    produktname: sku,
+  });
+  if (rpcError) console.error("❌ Fehler bei Punkte-Update:", rpcError);
+
+  // Telegram Nachricht
+  try {
+    const ablaufText =
+      cfg.days > 0 && cfg.days < 9999
+        ? `📅 Gültig bis: ${endDate.toLocaleDateString("de-DE")}`
+        : (cfg.days >= 9999 ? `♾️ Lifetime Access` : `⏳ Kein Ablaufdatum`);
+    await bot.telegram.sendMessage(
+      telegramId,
+      `🏆 *${cfg.status} aktiviert!*\\n\\n${ablaufText}\\n💵 Zahlung: ${amount || cfg.price} ${currency || "EUR"}\\n⭐ Punkte: +${punkte}`,
+      { parse_mode: "Markdown" }
+    );
+  } catch (e) {
+    console.error(`⚠️ Konnte Telegram-Nachricht an ${telegramId} nicht senden`, e);
+  }
+}
+
+
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -125,6 +198,80 @@ app.post("/create-order", express.json(), async (req, res) => {
 });
 
 // Erfolg mit Pass-Aktivierung (universell für alle Produkte mit individueller Laufzeit)
+// === Moderne PayPal-Checkout Flows (Create → Approve → Capture) ===
+// Käufer kommt vom Telegram-Button hier an -> Order erstellen -> Redirect zum Approve-Link
+app.get("/pay/:sku", async (req, res) => {
+  try {
+    const sku = req.params.sku;
+    const telegramId = String(req.query.tid || "").trim();
+    const cfg = skuConfig[sku];
+
+    if (!cfg || !telegramId || !/^\d+$/.test(telegramId)) {
+      return res.status(400).send("❌ Ungültige Parameter.");
+    }
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: "CAPTURE",
+      purchase_units: [{
+        reference_id: sku,
+        custom_id: telegramId, // für Reconciliation
+        amount: { currency_code: "EUR", value: cfg.price },
+        description: cfg.name,
+        items: [{
+          name: cfg.name,
+          quantity: "1",
+          unit_amount: { currency_code: "EUR", value: cfg.price }
+        }]
+      }],
+      application_context: {
+        brand_name: "ChiaraBadGirl",
+        user_action: "PAY_NOW",
+        landing_page: "LOGIN",
+        return_url: `https://${RAILWAY_DOMAIN}/paypal/return?sku=${sku}&tid=${telegramId}`,
+        cancel_url: `https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`
+      }
+    });
+
+    const order = await client.execute(request);
+    const approve = order?.result?.links?.find(l => l.rel === "approve")?.href;
+    if (!approve) return res.status(500).send("❌ Konnte keinen Approve-Link erhalten.");
+
+    return res.redirect(302, approve);
+  } catch (err) {
+    console.error("❌ Fehler in /pay/:sku", err);
+    return res.status(500).send("Interner Fehler");
+  }
+});
+
+// PayPal redirectet hierher mit ?token=<ORDER_ID>
+app.get("/paypal/return", async (req, res) => {
+  try {
+    const { token: orderId, sku, tid: telegramId } = req.query;
+    if (!orderId || !sku || !telegramId) {
+      return res.status(400).send("❌ Parameter fehlen.");
+    }
+
+    const captureReq = new paypal.orders.OrdersCaptureRequest(orderId);
+    captureReq.requestBody({}); // leeres Body laut Spec
+    const captureRes = await client.execute(captureReq);
+
+    const cap = captureRes?.result?.purchase_units?.[0]?.payments?.captures?.[0];
+    const amount = cap?.amount?.value;
+    const currency = cap?.amount?.currency_code;
+
+    await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount, currency });
+
+    res.send(`<h1>✅ Zahlung erfolgreich!</h1>
+      <p>${sku} wurde freigeschaltet.</p>
+      <p>Du kannst jetzt zu Telegram zurückkehren.</p>`);
+  } catch (err) {
+    console.error("❌ Fehler in /paypal/return:", err);
+    res.status(500).send("Interner Fehler");
+  }
+});
+
 app.get("/success", async (req, res) => {
   try {
     const telegramId = req.query.telegramId;
@@ -718,7 +865,7 @@ const paypalLink_FullAccess = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('FULL_ACCESS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
@@ -783,7 +930,7 @@ const paypalLink_VideoPack5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('VIDEO_PACK_5', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'videos_5' }]
@@ -829,7 +976,7 @@ const paypalLink_VideoPack10 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('VIDEO_PACK_10', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'videos_10' }]
@@ -875,7 +1022,7 @@ const paypalLink_VideoPack15 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('VIDEO_PACK_15', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'videos_15' }]
@@ -975,7 +1122,7 @@ const paypalLink_DaddyBronze = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('DADDY_BRONZE', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]
@@ -1024,7 +1171,7 @@ const paypalLink_DaddySilber = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('DADDY_SILBER', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]
@@ -1073,7 +1220,7 @@ const paypalLink_DaddyGold = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick`
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('DADDY_GOLD', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]
@@ -1150,7 +1297,7 @@ const paypalLink_GirlfriendPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xc
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('GF_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]
@@ -1213,7 +1360,7 @@ const paypalLink_DominaPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('DOMINA_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_domina' }]
@@ -1264,7 +1411,7 @@ const paypalLink_VIPPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('VIP_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'preise_vip' }]
@@ -1338,7 +1485,7 @@ const paypalLink_Custom3 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('CUSTOM3_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'custom_3' }]
@@ -1384,7 +1531,7 @@ const paypalLink_Custom5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('CUSTOM5_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'custom_5' }]
@@ -1448,7 +1595,7 @@ const paypalLink_Panty = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('PANTY_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'panty_item' }]
@@ -1494,7 +1641,7 @@ const paypalLink_Socks = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '💵 PayPal', url: paypalLink }],
+          [{ text: '💵 PayPal', url: payUrl('SOCKS_PASS', telegramId) }],
           [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
           [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
           [{ text: '🔙 Zurück', callback_data: 'socks_item' }]
