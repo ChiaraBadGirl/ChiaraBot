@@ -12,7 +12,7 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.ap
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
 const PORT = process.env.PORT || 3000;
 
-// Neutrale PayPal-Benennungen (konfigurierbar über Railway-ENV)
+// Neutrale PayPal-Benennungen (über ENV überschreibbar)
 const PAYPAL_BRAND = process.env.PAYPAL_BRAND || "Bianca Utter";
 const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
 const PAYPAL_DESC = process.env.PAYPAL_DESC || "Online Access & Merch";
@@ -1741,9 +1741,6 @@ console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
 // === Webhook Route: /paypal/webhook (mit frühem Logging & Signaturprüfung) ===
 
 // === Healthchecks (GET) für schnellen Test im Browser ===
-app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
-app.get("/paypal/webhook", (req, res) => res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
-
 // === Gemeinsamer Webhook-Handler ===
 const _paypalWebhookHandler = async (req, res) => {
   try {
@@ -1788,8 +1785,6 @@ const _paypalWebhookHandler = async (req, res) => {
 // === Health Endpoints ===
 if (typeof app.get === 'function') {
   app.get("/_health", (req, res) => res.status(200).send("ok"));
-  app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook Endpoint OK (GET)"));
-  app.get("/paypal/webhook", (req, res) => res.status(200).send("✅ PayPal Webhook Alias OK (GET)"));
 }
 
 // === PayPal Webhook (RAW body, early logging, optional debug-bypass) ===
@@ -1937,8 +1932,6 @@ const unifiedPaypalWebhook = async (req, res) => {
 };
 
 if (typeof app.post === 'function') {
-  app.post("/webhook/paypal", paypalRaw, unifiedPaypalWebhook);
-  app.post("/paypal/webhook", paypalRaw, unifiedPaypalWebhook);
 }
 
 // === Ensure server listening ===
@@ -1946,6 +1939,17 @@ if (typeof PORT === 'undefined') {
   globalThis.PORT = process.env.PORT || 8080;
 }
 if (!globalThis.__LISTENING__) {
+
+// ✅ Healthcheck (optional, für Browser)
+app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook OK (GET)"));
+
+// ✅ ECHTE Webhook-Route – nur diese verarbeitet Events
+app.post("/webhook/paypal", unifiedPaypalWebhook);
+
+// 🚫 Legacy-Alias neutralisieren – tut nichts mehr
+app.all("/paypal/webhook", (req, res) => res.sendStatus(204));
+
+
   app.listen(PORT, () => {
     globalThis.__LISTENING__ = true;
     console.log("🚀 Server läuft und hört auf PORT", PORT, "—", "2025-08-10T19:21:18.010409Z");
