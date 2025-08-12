@@ -278,7 +278,13 @@ app.get("/pay/:sku", async (req, res) => {
       purchase_units: [{
         reference_id: sku,
         custom_id: telegramId, // für Reconciliation
-        amount: { currency_code: "EUR", value: cfg.price },
+        amount: { 
+    currency_code: "EUR", 
+    value: cfg.price,
+    breakdown: {
+      item_total: { currency_code: "EUR", value: cfg.price }
+    }
+  },
         description: PAYPAL_DESC,
         items: [{
           name: PAYPAL_ITEM_NAME,
