@@ -12,6 +12,12 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.ap
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
 const PORT = process.env.PORT || 3000;
 
+// Neutrale PayPal-Benennungen (konfigurierbar über Railway-ENV)
+const PAYPAL_BRAND = process.env.PAYPAL_BRAND || "Bianca Utter";
+const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
+const PAYPAL_DESC = process.env.PAYPAL_DESC || "Online Access & Merch";
+
+
 // 🔹 Funktion zum Escapen von MarkdownV2-Zeichen
 function mdEscape(text) {
   if (!text) return '';
@@ -257,15 +263,15 @@ app.get("/pay/:sku", async (req, res) => {
         reference_id: sku,
         custom_id: telegramId, // für Reconciliation
         amount: { currency_code: "EUR", value: cfg.price },
-        description: cfg.name,
+        description: PAYPAL_DESC,
         items: [{
-          name: cfg.name,
+          name: PAYPAL_ITEM_NAME,
           quantity: "1",
           unit_amount: { currency_code: "EUR", value: cfg.price }
         }]
       }],
       application_context: {
-        brand_name: "ChiaraBadGirl",
+        brand_name: PAYPAL_BRAND,
         user_action: "PAY_NOW",
         landing_page: "LOGIN",
         return_url: `https://${RAILWAY_DOMAIN}/paypal/return?sku=${sku}&tid=${telegramId}`,
