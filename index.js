@@ -1855,6 +1855,8 @@ async function claimEvent(eventId, eventType) {
 }
 
 const unifiedPaypalWebhook = async (req, res) => {
+  console.log("🔬 unifiedPaypalWebhook body type:", typeof req.body, "| raw length:", (req.rawBody||"").length);
+
   try {
     const rawBody = Buffer.isBuffer(req.body)
       ? req.body.toString("utf8")
@@ -1944,7 +1946,15 @@ if (!globalThis.__LISTENING__) {
 app.get("/webhook/paypal", (req, res) => res.status(200).send("✅ PayPal Webhook OK (GET)"));
 
 // ✅ ECHTE Webhook-Route – nur diese verarbeitet Events
-app.post("/webhook/paypal", unifiedPaypalWebhook);
+app.post(
+  "/webhook/paypal",
+  express.json({
+    type: "application/json",
+    limit: "2mb",
+    verify: (req, res, buf) => { req.rawBody = buf.toString("utf8"); }
+  }),
+  unifiedPaypalWebhook
+);
 
 // 🚫 Legacy-Alias neutralisieren – tut nichts mehr
 app.all("/paypal/webhook", (req, res) => res.sendStatus(204));
