@@ -12,6 +12,22 @@ const RAILWAY_DOMAIN = process.env.RAILWAY_DOMAIN || "DEINE-DOMAIN.up.railway.ap
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
 const PORT = process.env.PORT || 3000;
 
+
+
+// ===== Produktions-Logging =====
+const DEBUG = (process.env.DEBUG === 'true' || process.env.LOG_LEVEL === 'debug' || process.env.PAYPAL_DEBUG_WEBHOOK === 'true');
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
+function log(level, ...args) {
+  const L = LEVELS[level] ?? 2;
+  const C = LEVELS[LOG_LEVEL] ?? 2;
+  if (L <= C) {
+    if (level === 'debug') { console.log(...args); }
+    else if (level === 'info') { console.log(...args); }
+    else if (level === 'warn') { console.warn(...args); }
+    else { console.error(...args); }
+  }
+}
 // Neutrale PayPal-Benennungen (über ENV überschreibbar)
 const PAYPAL_BRAND = process.env.PAYPAL_BRAND || "Bianca Utter";
 const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
@@ -1744,10 +1760,10 @@ console.log("🚀 ChiaraBot gestartet & läuft im Webhook-Modus");
 // === Gemeinsamer Webhook-Handler ===
 const _paypalWebhookHandler = async (req, res) => {
   try {
-    console.log("🛰️ Webhook HIT", req.originalUrl, "@", new Date().toISOString());
-    console.log("Headers:", req.headers);
+    log('info', "🛰️ Webhook HIT", req.originalUrl, "@", new Date().toISOString());
+    if (DEBUG) console.log("Headers:", req.headers);
     const raw = (req.body || "").toString();
-    console.log("Body RAW:", raw);
+    if (DEBUG) console.log("Body RAW:", raw);
 
     let event;
     try {
@@ -1764,7 +1780,7 @@ const _paypalWebhookHandler = async (req, res) => {
     console.log("🧾 Signatur gültig?", valid);
     if (!valid) return res.status(400).send("Invalid signature");
 
-    console.log("🔔 PayPal Webhook Event:", event.event_type);
+    log('info', "🔔 PayPal Webhook Event:", event.event_type);
 
     // Nur ein Minimal-Flow – dein existierendes Handling kann hier rein
     if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
@@ -1863,8 +1879,8 @@ const unifiedPaypalWebhook = async (req, res) => {
       : (typeof req.body === "string" ? req.body : (req.body ? JSON.stringify(req.body) : ""));
 
     console.log(`📩 Webhook HIT ${req.path} @ ${new Date().toISOString()}`);
-    console.log("Headers:", req.headers);
-    console.log("Body RAW:", rawBody && rawBody.slice(0, 5000));
+    if (DEBUG) console.log("Headers:", req.headers);
+    if (DEBUG) console.log("Body RAW:", rawBody && rawBody.slice(0, 5000));
 
     const valid = __debugFlag() ? true : await verifyPaypalSignatureRAW(req, rawBody);
     console.log("🧾 Signatur gültig?", valid);
