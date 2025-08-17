@@ -34,13 +34,22 @@ const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
 const PAYPAL_DESC = process.env.PAYPAL_DESC || "Online Access & Merch";
 
 // === SumUp Konfiguration ===
-const SUMUP_CLIENT_ID = process.env.SUMUP_CLIENT_ID || "";
-const SUMUP_CLIENT_SECRET = process.env.SUMUP_CLIENT_SECRET || "";
+const SUMUP_CLIENT_ID = process.env.SUMUP_CLIENT_ID || process.env.SUMUP_API_KEY || "";
+const SUMUP_CLIENT_SECRET = process.env.SUMUP_CLIENT_SECRET || process.env.SUMUP_SECRET_KEY || "";
 const SUMUP_MERCHANT_CODE = process.env.SUMUP_MERCHANT_CODE || "";
 const SUMUP_ENV = process.env.SUMUP_ENV || "live"; // "live" oder "sandbox"
 const SUMUP_BRAND = process.env.SUMUP_BRAND || PAYPAL_BRAND;
 const SUMUP_ITEM_NAME = process.env.SUMUP_ITEM_NAME || PAYPAL_ITEM_NAME;
 const SUMUP_DESC = process.env.SUMUP_DESC || PAYPAL_DESC;
+
+// ✅ Sanity-Check: SumUp Schlüssel vorhanden?
+if (!SUMUP_CLIENT_ID || !SUMUP_CLIENT_SECRET) {
+  console.warn("⚠️ SumUp: CLIENT_ID oder CLIENT_SECRET fehlt. Bitte in Railway setzen:",
+               "\n- SUMUP_CLIENT_ID (oder alternativ SUMUP_API_KEY)",
+               "\n- SUMUP_CLIENT_SECRET (oder alternativ SUMUP_SECRET_KEY)");
+} else {
+  console.log("✅ SumUp Keys geladen (Client-ID & Secret gefunden).");
+}
 
 
 
@@ -142,7 +151,7 @@ async function getSumupToken() {
   });
   if (!resp.ok) {
     const txt = await resp.text();
-    throw new Error(`SumUp Token-Fehler: ${resp.status} ${txt}`);
+    throw new Error(`SumUp Token-Fehler: ${resp.status} ${txt} — Hinweis: Prüfe, ob SUMUP_CLIENT_ID / SUMUP_CLIENT_SECRET (oder SUMUP_API_KEY / SUMUP_SECRET_KEY) gesetzt sind.`);
   }
   const data = await resp.json();
   // Token meist 3600s gültig
