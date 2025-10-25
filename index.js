@@ -2103,7 +2103,7 @@ app.get("/checkout/:sku", async (req, res) => {
 </head><body>
 <h2>Checkout: ${item.name} – ${item.price} €</h2>
 <div class="row" id="paypal-buttons"></div>
-<form id="card-form" class="row">
+<form id="card-form" style="display:none" class="row">
   <div id="card-number"></div>
   <div id="card-expiration"></div>
   <div id="card-cvv"></div>
@@ -2111,9 +2111,9 @@ app.get("/checkout/:sku", async (req, res) => {
 </form>
 <div id="msg" class="row" style="color:#555"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,payment-fields,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&enable-funding=paypal,card,applepay,googlepay&disable-funding=bancontact,blik,eps,mybank&commit=true" data-client-token="${clientToken}"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&commit=true" data-client-token="${clientToken}"></script>
 <script>
-  const SKU=${JSON.stringify('${sku}')}, TID=${JSON.stringify('${tid}')};
+  const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
   async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
   async function capture(id){ const r=await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"cap"); return j; }
 
@@ -2128,7 +2128,7 @@ app.get("/checkout/:sku", async (req, res) => {
         expirationDate: { selector: "#card-expiration", placeholder: "MM/YY" },
         cvv: { selector: "#card-cvv", placeholder: "CVV" }
       }
-    }).then(hf => {
+    }).then(hf => { document.getElementById("card-form").style.display = "";
       document.getElementById("card-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const orderId = await createOrder();
