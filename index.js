@@ -18,21 +18,20 @@ const PORT = process.env.PORT || 3000;
 const DEBUG = (process.env.DEBUG === 'true' || process.env.LOG_LEVEL === 'debug' || process.env.PAYPAL_DEBUG_WEBHOOK === 'true');
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
-function log(level, args) {
+function log(level, ...args) {
   const L = LEVELS[level] ?? 2;
   const C = LEVELS[LOG_LEVEL] ?? 2;
   if (L <= C) {
-    if (level === 'debug') { console.log(args); }
-    else if (level === 'info') { console.log(args); }
-    else if (level === 'warn') { console.warn(args); }
-    else { console.error(args); }
+    if (level === 'debug') { console.log(...args); }
+    else if (level === 'info') { console.log(...args); }
+    else if (level === 'warn') { console.warn(...args); }
+    else { console.error(...args); }
   }
 }
-// Neutrale PayPal-Benennungen (über ENV überschreibbar; akzeptiert PAYPAL_* oder PAYMENT_*)
-const PAYPAL_BRAND = process.env.PAYPAL_BRAND || process.env.PAYMENT_BRAND || "Bianca Utter";
-const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || process.env.PAYMENT_ITEM_NAME || "Digital Service";
-const PAYPAL_DESC = process.env.PAYPAL_DESC || process.env.PAYMENT_DESC || "Online Access & Merch";
-
+// Neutrale PayPal-Benennungen (über ENV überschreibbar)
+const PAYPAL_BRAND = process.env.PAYPAL_BRAND || "Bianca Utter";
+const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
+const PAYPAL_DESC = process.env.PAYPAL_DESC || "Online Access & Merch";
 
 
 // 🔹 Funktion zum Escapen von MarkdownV2-Zeichen
@@ -47,42 +46,6 @@ let environment = new paypal.core.LiveEnvironment(
     PAYPAL_CLIENT_SECRET
 );
 let client = new paypal.core.PayPalHttpClient(environment);
-// Helper: unify client access
-function paypalClient(){ return client; }
-// === OAuth2 Access Token & Client Token for Hosted Fields ===
-async function generateAccessTokenRAW() {
-  const creds = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
-  const base = (environment instanceof paypal.core.SandboxEnvironment)
-    ? "https://api-m.sandbox.paypal.com"
-    : "https://api-m.paypal.com";
-  const resp = await fetch(`${base}/v1/oauth2/token`, {
-    method: "POST",
-    headers: { "Authorization": `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: "grant_type=client_credentials"
-  });
-  if (!resp.ok) throw new Error("OAuth failed " + resp.status + " " + await resp.text());
-  return (await resp.json()).access_token;
-}
-
-async function generateClientToken() {
-  const base = (environment instanceof paypal.core.SandboxEnvironment)
-    ? "https://api-m.sandbox.paypal.com"
-    : "https://api-m.paypal.com";
-  const accessToken = await generateAccessTokenRAW();
-  const resp = await fetch(`${base}/v1/identity/generate-token`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "Accept-Language": "de-DE"
-    }
-  });
-  if (!resp.ok) throw new Error("ClientToken failed " + resp.status + " " + await resp.text());
-  const data = await resp.json();
-  return data.client_token;
-}
-
-
 // --- PayPal Webhook-Signatur prüfen (nimmt Headers + Event-Objekt)
 const PAYPAL_API_BASE = (environment instanceof paypal.core.SandboxEnvironment)
   ? "https://api-m.sandbox.paypal.com"
@@ -120,11 +83,10 @@ async function verifyPaypalSignature(headers, eventObj) {
 
 // === PayPal: SKU-Config & Helpers (modern Checkout) ===
 const ENABLE_TEST_SKU = process.env.ENABLE_TEST_SKU === 'true';
-const TEST_SKUS = ENABLE_TEST_SKU ? { TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 } } : {};
 
 const skuConfig = {
-  ...TEST_SKUS,
-  VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
+    ...(ENABLE_TEST_SKU ? { TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 } } : {}),
+VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
   FULL_ACCESS:   { name: "Full Access (1M)",    price: "50.00", status: "FULL",           days: 30 },
   VIDEO_PACK_5:  { name: "Video Pack 5",        price: "50.00", status: "VIDEO_PACK_5",  days: 9999 },
   VIDEO_PACK_10: { name: "Video Pack 10",       price: "90.00", status: "VIDEO_PACK_10", days: 9999 },
@@ -132,8 +94,8 @@ const skuConfig = {
   DADDY_BRONZE:  { name: "Daddy Bronze",        price: "80.00", status: "DADDY_BRONZE",  days: 30 },
   DADDY_SILBER:  { name: "Daddy Silber",        price: "150.00",status: "DADDY_SILBER",  days: 30 },
   DADDY_GOLD:    { name: "Daddy Gold",          price: "225.00",status: "DADDY_GOLD",    days: 30 },
-  GF_PASS:       { name: "Girlfriend Pass",     price: "150.00",status: "GF",            days: 7  },
-  DOMINA_PASS:   { name: "Domina / Slave Pass", price: "150.00",status: "SLAVE",         days: 7  },
+  GF_PASS:       { name: "Girlfriend Pass",     price: "150.00",status: "GF",             days: 7  },
+  DOMINA_PASS:   { name: "Domina / Slave Pass", price: "150.00",status: "SLAVE",          days: 7  },
   CUSTOM3_PASS:  { name: "Custom Video 3 Min",  price: "100.00",status: "CUSTOM3_PASS",  days: 9999 },
   CUSTOM5_PASS:  { name: "Custom Video 5 Min",  price: "140.00",status: "CUSTOM5_PASS",  days: 9999 },
   PANTY_PASS:    { name: "Panty",               price: "40.00", status: "PANTY_PASS",    days: 0   },
@@ -357,7 +319,17 @@ app.get("/paypal/return", async (req, res) => {
     if (!orderId || !sku || !telegramId) {
       return res.status(400).send("❌ Parameter fehlen.");
     }
-    // Bereits serverseitig (oder per Webhook) gecaptured & fulfilled.
+
+    const captureReq = new paypal.orders.OrdersCaptureRequest(orderId);
+    captureReq.requestBody({}); // leeres Body laut Spec
+    const captureRes = await client.execute(captureReq);
+
+    const cap = captureRes?.result?.purchase_units?.[0]?.payments?.captures?.[0];
+    const amount = cap?.amount?.value;
+    const currency = cap?.amount?.currency_code;
+
+    await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount, currency });
+
     res.send(`<h1>✅ Zahlung erfolgreich!</h1>
       <p>${sku} wurde freigeschaltet.</p>
       <p>Du kannst jetzt zu Telegram zurückkehren.</p>`);
@@ -367,7 +339,6 @@ app.get("/paypal/return", async (req, res) => {
   }
 });
 
-
 app.get("/success", async (req, res) => {
   try {
     const telegramId = req.query.telegramId;
@@ -375,7 +346,7 @@ app.get("/success", async (req, res) => {
     const price = parseFloat(req.query.price) || 0;
 
     if (!telegramId) {
-      return res.status(400).send("❌ Telegram-ID fehlt.");
+      return res.status(400).send("❌ Fehler: Telegram-ID fehlt.");
     }
 
     // 🔹 Laufzeit-Mapping (Tage pro Produkt)
@@ -624,7 +595,7 @@ bot.action('info_wer', async (ctx) => {
     '🔥 *BadBiitch* – wild, frech und immer ein bisschen gefährlich\n' +
     '🎨 *Tätowiert & einzigartig* – Kunst auf meiner Haut und in meinem Leben\n\n' +
     '📸 *Hier bekommst du*: Exklusive Pics, heiße Videos, private Chats & besondere Sessions\n' +
-    '💎 Dein VIP-Zugang zu einer Welt ohne Grenzen\n\n' +
+    '💎 Dein VIP-Zugang zu einer Welt ohne Grenzen...\n\n' +
     '⚡ *ChiaraBadGirl – Dein geheimes Vergnügen wartet!* ⚡',
     {
       parse_mode: 'Markdown',
@@ -2043,7 +2014,7 @@ app.post("/api/paypal/order", express.json(), async (req, res) => {
       }],
     });
 
-    const order = await client.execute(request);
+    const order = await paypalClient().execute(request);
     res.json({ id: order.result.id });
   } catch (e) {
     console.error("create order error:", e);
@@ -2058,7 +2029,7 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
     const capReq = new paypal.orders.OrdersCaptureRequest(orderId);
     capReq.requestBody({});
-    const cap = await client.execute(capReq);
+    const cap = await paypalClient().execute(capReq);
 
     const unit = cap.result?.purchase_units?.[0];
     const capture = unit?.payments?.captures?.[0];
@@ -2084,309 +2055,95 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 
 // ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
-app.get("/checkout/:sku", async (req, res) => {
-  const sku = req.params.sku;
-  const tid = String(req.query.tid || "").trim();
-  const cfg = (typeof skuConfig !== "undefined" ? skuConfig[sku] : undefined);
-
-  if (!cfg || !/^\d+$/.test(tid)) {
-    return res.status(400).send("❌ Ungültige Parameter.");
-  }
-
-  const sdkUrl =
-    "https://www.paypal.com/sdk/js" +
-    `?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}` +
-    `&currency=EUR` +
-    `&intent=capture` +
-    `&components=buttons` +
-    `&enable-funding=card` +
-    `&commit=true`;
+app.get("/checkout/:sku", (req, res) => {
+  const { sku } = req.params;
+  const { tid = "" } = req.query;
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const currency = "EUR";
 
   res.type("html").send(`<!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Checkout: ${cfg.name} – ${cfg.price} €</title>
-  <style>
-    :root { --bg:#0b1020; --card:#ffffff; --ink:#101216; --muted:#6b7280; --accent:#111827; }
-    * { box-sizing: border-box; }
-    body {
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
-      color:var(--ink);
-      background: radial-gradient(1200px 600px at 20% -10%, #3548ff22, transparent 60%),
-                  radial-gradient(1000px 600px at 110% 10%, #ff2a6b22, transparent 60%),
-                  linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
-      min-height:100vh; padding:24px;
-    }
-    .wrap { max-width: 780px; margin: 0 auto; }
-    .brand {
-      display:flex; align-items:center; gap:12px; margin: 8px 0 18px;
-      font-weight: 800; font-size: clamp(20px, 4vw, 28px);
-    }
-    .logo {
-      width:36px; height:36px; border-radius:12px;
-      background: linear-gradient(135deg, #7c3aed, #06b6d4);
-      box-shadow: 0 10px 25px #7c3aed33;
-    }
-    .card {
-      background: var(--card); border-radius:20px; padding:18px 18px 22px;
-      box-shadow: 0 10px 35px #02061722, 0 1px 0 #ffffffaa inset;
-      border: 1px solid #e5e7eb;
-    }
-    .title { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
-    .title h1 { margin:0; font-size: 20px; font-weight: 800; letter-spacing:.2px; }
-    .price { font-size: 20px; font-weight: 900; }
-    .meta { margin:10px 2px 14px; color:var(--muted); font-size:14px; display:flex; gap:8px; align-items:center; }
-    #paypal-buttons, #card-button { margin-top: 12px; }
-    .err { margin-top: 12px; color: #b91c1c; font-weight:600; }
-    .footnote { margin-top:12px; font-size:12px; color:#9ca3af; }
-  </style>
-</head>
-<body>
-  <main class="wrap">
-    <div class="brand"><div class="logo"></div> Bianca Utter</div>
-    <section class="card">
-      <div class="title">
-        <h1>${cfg.name}</h1>
-        <div class="price">${cfg.price} €</div>
-      </div>
-      <div class="meta">🔒 SSL-gesicherte Zahlung · Abgewickelt durch PayPal</div>
-
-      <!-- PayPal Buttons -->
-      <div id="paypal-buttons"></div>
-      <div id="card-button"></div>
-
-      <p id="err" class="err" hidden></p>
-      <div class="footnote">Mit Abschluss stimmst du unseren AGB & Widerrufsbedingungen zu.</div>
-    </section>
-  </main>
-
-  <!-- PayPal SDK (nur Buttons) -->
-  <script src="${sdkUrl}"></script>
-
-  <script>
-    (function () {
-      const sku   = ${"${JSON.stringify(sku)}"};
-      const tid   = ${"${JSON.stringify(tid)}"};
-      const price = ${"${JSON.stringify(cfg.price)}"};
-      const desc  = ${"${JSON.stringify(PAYPAL_DESC)}"};
-
-      function showError(msg, err) {
-        const el = document.getElementById('err');
-        el.textContent = msg || 'Etwas ist schiefgelaufen. Bitte Seite neu laden.';
-        el.hidden = false;
-        if (err) console.error('[PayPal] ', err);
-      }
-
-      function createOrder(data, actions) {
-        return actions.order.create({
-          intent: 'CAPTURE',
-          purchase_units: [{
-            reference_id: sku,
-            custom_id: tid,
-            description: desc,
-            amount: { currency_code: 'EUR', value: price }
-          }],
-          application_context: { user_action: 'PAY_NOW' }
-        });
-      }
-
-      function onApprove(data, actions) {
-        return actions.order.capture().then(function () {
-          window.location.href =
-            '/success?telegramId=' + encodeURIComponent(tid) +
-            '&productName=' + encodeURIComponent(sku) +
-            '&price=' + encodeURIComponent(price);
-        });
-      }
-
-      function onError(err) { showError('Zahlung konnte nicht gestartet werden.', err); }
-
-      try {
-        const ppBtn = paypal.Buttons({
-          style: { layout: 'horizontal', color: 'gold', height: 48, shape: 'pill' },
-          createOrder, onApprove, onError
-        });
-        if (ppBtn.isEligible()) ppBtn.render('#paypal-buttons');
-      } catch (e) { onError(e); }
-
-      try {
-        const cardBtn = paypal.Buttons({
-          fundingSource: paypal.FUNDING.CARD,
-          style: { layout: 'horizontal', color: 'black', height: 48, shape: 'pill', label: 'pay' },
-          createOrder, onApprove, onError
-        });
-        if (cardBtn.isEligible()) cardBtn.render('#card-button');
-      } catch (e) {
-        console.warn('Card button not eligible', e);
-      }
-    })();
-  </script>
-</body>
-</html>`);
-});const cfg = skuConfig[sku];
-    if (!cfg || !/^\d+$/.test(tid)) return res.status(400).send("❌ Ungültige Parameter.");
-    const clientToken = await generateClientToken();
-    const clientId = PAYPAL_CLIENT_ID;
-
-    res.type("html").send(`<!doctype html>
-<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Checkout: ${cfg.name} – ${cfg.price} €</title>
+<html lang="de"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Checkout</title>
 <style>
-  :root{
-    --bg:#0b0c0f; --card:#12141a; --text:#fff; --muted:#98a2b3; --accent:#7c5cff; --ring:rgba(124,92,255,.25);
-  }
-  @media (prefers-color-scheme:light){
-    :root{ --bg:#f6f7fb; --card:#ffffff; --text:#0b0c0f; --muted:#55627a; --accent:#6f5aff; --ring:rgba(124,92,255,.18); }
-  }
-  *{box-sizing:border-box} html,body{height:100%}
-  body{
-    margin:0;padding:clamp(16px,3.6vw,28px);
-    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
-    color:var(--text);
-    background:
-      radial-gradient(1000px 600px at 80% -10%, rgba(124,92,255,.10), transparent 60%),
-      radial-gradient(800px 500px at -10% 10%, rgba(0,161,255,.10), transparent 60%),
-      var(--bg);
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:720px;margin:0 auto}
-  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-  .badge{width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,var(--accent),#4f46e5);box-shadow:0 10px 26px var(--ring)}
-  .brand h1{margin:0;font-size:clamp(22px,3.8vw,28px);font-weight:800;letter-spacing:.2px}
-  .card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.06);
-    box-shadow:0 18px 40px -18px rgba(0,0,0,.4), 0 2px 6px -2px rgba(0,0,0,.25);padding:clamp(16px,3.6vw,28px);}
-  .summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding-bottom:14px;margin-bottom:14px;border-bottom:1px dashed rgba(255,255,255,.12);}
-  .summary .name{font-weight:700;font-size:clamp(18px,3.4vw,22px)}
-  .summary .price{font-weight:800;font-size:clamp(18px,3.4vw,22px)}
-  .pay{margin-top:8px}
-  #paypal-buttons{min-height:48px;margin:12px 0}
-  #paypal-card-fallback{margin:12px 0}
-  #card-form{display:none;margin-top:8px}
-  .row{margin-top:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:10px}
-  .fine{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .lock{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-radius:3px;position:relative;transform:translateY(2px)}
-  .lock:before{content:"";position:absolute;left:2px;top:-7px;width:8px;height:6px;border:2px solid var(--muted);border-bottom:none;border-radius:8px 8px 0 0}
-  @media (prefers-color-scheme:light){
-    .row{background:#f4f6fb;border-color:#e8ecf4}
-    .card{border-color:#eef0f7;box-shadow:0 18px 36px -18px rgba(47,45,86,.25),0 2px 8px -2px rgba(47,45,86,.08)}
-  }
-  .cta{margin-top:12px;width:100%;height:44px;border:none;border-radius:10px;font-weight:700;
-    background:linear-gradient(135deg,var(--accent),#4f46e5);color:#fff;box-shadow:0 10px 24px var(--ring);}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
+  .btnrow{margin:12px 0}
+  #pp-btns,#card-btn,#gpay-btn,#apay-btn{min-height:48px;min-width:280px}
+  #dbg{font-size:12px;color:#888;white-space:pre-line;margin-bottom:8px}
 </style>
 </head><body>
-  <div class="wrap">
-    <div class="brand"><div class="badge" aria-hidden="true"></div><h1>${process.env.PAYMENT_BRAND || 'Checkout'}</h1></div>
-    <div class="card">
-      <div class="summary">
-        ${process.env.PAYMENT_IMAGE_URL ? '<img src="' + process.env.PAYMENT_IMAGE_URL + '" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;margin-right:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);" />' : ''}
-        <div class="name">${cfg.name}</div>
-        <div class="price">${cfg.price} €</div>
-      </div>
-      <div class="pay">
-        <div id="paypal-buttons"></div>
-        <div id="paypal-card-fallback"></div>
-        <form id="card-form">
-          <div class="row" id="card-number"></div>
-          <div class="row" id="card-expiration"></div>
-          <div class="row" id="card-cvv"></div>
-          <button id="card-pay" type="submit" class="cta">Mit Karte bezahlen</button>
-        </form>
-        <div class="fine"><span class="lock"></span><span>SSL-gesicherte Zahlung</span> · <span>Abgewickelt durch PayPal</span></div>
-      </div>
-    </div>
-  </div>
-https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="" onerror=""></script>
-  <script>
-  const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
-  function setMsg(m){}
+<div id="dbg"></div>
+<h2>Checkout</h2>
+<div class="btnrow"><div id="pp-btns"></div></div>
+<div class="btnrow"><div id="card-btn"></div></div>
+<div class="btnrow"><div id="apay-btn"></div></div>
+<div class="btnrow"><div id="gpay-btn"></div></div>
+<div id="msg" style="margin-top:12px;color:#555"></div>
 
-  async function waitForSDK(){
-    if (window.paypal && window.paypal.Buttons) return;
-    await new Promise(resolve => {
-      const i = setInterval(() => {
-        if (window.paypal && window.paypal.Buttons) { clearInterval(i); resolve(); }
-      }, 30);
-      setTimeout(() => { clearInterval(i); resolve(); }, 8000);
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
+<script>
+  const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
+  const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\n"; }catch(e){} };
+  dbg("clientId present: " + ${"JSON.stringify(!!clientId)"});
+  dbg("SDK loaded? " + (typeof paypal !== "undefined"));
+
+  async function createOrder(){ 
+    const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); 
+    const j=await r.json(); return j.id; 
+  }
+  async function capture(id){ 
+    await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); 
+    document.getElementById("msg").textContent="Zahlung erfolgreich ✅"; 
+  }
+
+  // PayPal (gold)
+  try{
+    paypal.Buttons({
+      style:{ layout:"vertical", color:"gold", shape:"rect", label:"paypal" },
+      createOrder, onApprove: ({orderID}) => capture(orderID),
+      onError: e => dbg("PP error: " + (e && e.message || e))
+    }).render("#pp-btns");
+  }catch(e){ dbg("PP exception: " + e); }
+
+  // Card (black)
+  try{
+    const cardBtn = paypal.Buttons({
+      fundingSource: paypal.FUNDING.CARD,
+      style:{ layout:"vertical", color:"black", shape:"rect", label:"pay" },
+      createOrder, onApprove: ({orderID}) => capture(orderID),
+      onError: e => dbg("CARD error: " + (e && e.message || e))
     });
-  }
+    if (cardBtn.isEligible()) cardBtn.render("#card-btn"); else dbg("CARD not eligible");
+  }catch(e){ dbg("CARD exception: " + e); }
 
-  async function initCheckout(){
-    try { await waitForSDK(); } catch(e){}
-    if (!window.paypal) { setMsg("SDK nicht verfügbar"); return; }
-
-    async function createOrderOnServer() {
-      const r = await fetch("/api/paypal/order", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error||"create order failed"); return j.id;
+  // Apple Pay
+  try{
+    const ap = paypal.Applepay && paypal.Applepay();
+    if (ap) {
+      ap.isEligible().then(eligible => {
+        dbg("ApplePay eligible: " + eligible);
+        if (eligible) {
+          const apBtn = ap.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) });
+          apBtn.render("#apay-btn");
+        }
+      });
     }
-    async function captureOnServer(orderId) {
-      const r = await fetch("/api/paypal/capture", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID, orderId }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
+  }catch(e){ dbg("AP error: " + e); }
+
+  // Google Pay
+  try{
+    const gp = paypal.Googlepay && paypal.Googlepay();
+    if (gp) {
+      gp.isEligible().then(eligible => {
+        dbg("GooglePay eligible: " + eligible);
+        if (eligible) {
+          gp.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) }).then(btn => btn.render("#gpay-btn"));
+        }
+      });
     }
-
-    try {
-      paypal.Buttons({
-        createOrder: () => createOrderOnServer(),
-        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
-          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
-        })
-      }).render("#paypal-buttons").catch(err => setMsg(""+err));
-    } catch(e){ setMsg(""+e); }
-
-    try {
-      var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
-      setMsg("SDK geladen – " + eligible);
-      const renderCardFallback = () => paypal.Buttons({
-        fundingSource: paypal.FUNDING.CARD,
-        createOrder: () => createOrderOnServer(),
-        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
-          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
-        })
-      }).render("#paypal-card-fallback");
-      if (eligible) {
-        paypal.HostedFields.render({
-          createOrder: () => createOrderOnServer(),
-          fields: {
-            number:     { selector: "#card-number", placeholder: "Kartennummer" },
-            expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
-            cvv:        { selector: "#card-cvv", placeholder: "CVV" }
-          }
-        }).then(hf => {
-          document.getElementById("card-form").style.display = "";
-          document.getElementById("card-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            try {
-              const result = await hf.submit({ contingencies: ["3D_SECURE"] });
-              const orderId = (result && (result.orderId || result.orderID)) || null;
-              if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
-              await captureOnServer(orderId);
-              location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
-            } catch (err) {
-              setMsg("" + (err && err.message || err));
-            }
-          });
-        }).catch(err => {
-          setMsg("Die Karteneingabe ist vorübergehend nicht verfügbar – zeige Karten‑Button. Details: " + (err && err.message || err) + " – zeige Karten-Button.");
-          renderCardFallback();
-        });
-      }
-      else {
-        /* Hosted Fields ineligible – simply show card button fallback without message */
-        renderCardFallback();
-      }
-    } catch(e){ setMsg(""+e); }
-  }
-
-  initCheckout();
-  window.addEventListener("error", e => setMsg(""+e.message));
+  }catch(e){ dbg("GP error: " + e); }
 </script>
 </body></html>`);
-  } catch (e) {
-    console.error("checkout page error:", e);
-    res.status(500).send("Interner Fehler (Checkout)");
-  }
 });
 // ==== END CHECKOUT PAGE ====
 
@@ -2403,18 +2160,17 @@ app.get("/pp-test/:sku?", (req, res) => {
 </head><body>
 <h2>PayPal Smart Buttons (Test)</h2>
 <div id="paypal-buttons"></div>
-  <div id="paypal-card-fallback" style="margin-top:12px"></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   async function createOrder(){ const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); return j.id; }
   async function capture(id){ await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); document.getElementById("msg").textContent="Zahlung erfolgreich ✅"; }
   paypal.Buttons({ style:{ layout:"vertical", color:"gold", shape:"rect", label:"paypal" },
     createOrder, onApprove: ({orderID}) => capture(orderID),
-    onError: (e)=>{ document.getElementById("msg").textContent=""+(e&&e.message||e); }
+    onError: (e)=>{ document.getElementById("msg").textContent="Fehler: "+(e&&e.message||e); }
   }).render("#paypal-buttons");
-window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent=""+e.message; });</script>
+</script>
 </body></html>`);
 });
 // ==== END DIAGNOSTIC ====
@@ -2425,7 +2181,7 @@ app.get("/sdk-debug", (req, res) => {
     node_env: process.env.NODE_ENV,
     domain: process.env.RAILWAY_DOMAIN,
     has_client_id: !!process.env.PAYPAL_CLIENT_ID,
-    client_id_snippet: process.env.PAYPAL_CLIENT_ID ? (process.env.PAYPAL_CLIENT_ID.slice(0,8)+"") : null,
+    client_id_snippet: process.env.PAYPAL_CLIENT_ID ? (process.env.PAYPAL_CLIENT_ID.slice(0,8)+"...") : null,
   });
 });
 // ==== CHECKOUT SMART BUTTONS (PayPal + Card + Apple/Google) ====
@@ -2452,9 +2208,8 @@ app.get("/checkout-smart/:sku", (req, res) => {
 <div class="btnrow"><div id="apay-btn"></div></div>
 <div class="btnrow"><div id="gpay-btn"></div></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
-<div id="sdk-url" style="margin-top:6px;color:#888;font-size:12px"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\\n"; }catch(e){} };
@@ -2516,7 +2271,7 @@ app.get("/checkout-smart/:sku", (req, res) => {
       });
     }
   }catch(e){ dbg("GP error: " + e); }
-window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent=""+e.message; });</script>
+</script>
 </body></html>`);
 });
 // ==== END CHECKOUT SMART ====
@@ -2538,66 +2293,3 @@ window.addEventListener("error", function(e){ var m=document.getElementById("msg
     console.log("🚀 Server läuft und hört auf PORT", PORT, "—", "2025-08-10T19:21:18.010409Z");
   });
 }
-
-// === Diagnostics ===
-app.get("/__pp-diag", async (req, res) => {
-  try {
-    const info = {};
-    info.env = process.env.PAYPAL_ENVIRONMENT || "live";
-    info.clientId_present = !!PAYPAL_CLIENT_ID;
-    info.clientId_prefix = PAYPAL_CLIENT_ID ? PAYPAL_CLIENT_ID.slice(0,10) : null;
-    info.domain = RAILWAY_DOMAIN;
-    // Try client token
-    let ct = null, ctErr = null;
-    try { ct = await generateClientToken(); } catch (e) { ctErr = String(e); }
-    info.client_token_len = ct ? ct.length : 0;
-    info.client_token_prefix = ct ? ct.slice(0,8) : null;
-    info.client_token_error = ctErr;
-    res.status(200).json(info);
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
-});
-
-
-// ==== PURE BUTTONS (no client token) ====
-app.get("/pp-lite/:sku?", (req, res) => {
-  const sku = req.params.sku || "TEST_LIVE";
-  const clientId = PAYPAL_CLIENT_ID;
-  res.type("html").send(`<!doctype html>
-<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PP Lite</title>
-<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}#paypal-buttons{min-height:48px}</style>
-</head><body>
-<h2>PayPal Buttons – Lite</h2>
-<div id="paypal-buttons"></div>
-  <div id="paypal-card-fallback" style="margin-top:12px"></div>
-<div id="msg" style="margin-top:12px;color:#555"></div>
-<script id="pp-sdk" onload="" onerror=""></script>
-<script>
-  (function() {
-    function render() {
-      if (!window.paypal) return setTimeout(render, 50);
-      paypal.Buttons({
-        createOrder: function(){ return fetch('/api/paypal/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sku:'${sku}',tid:'1'})}).then(r=>r.json()).then(j=>j.id); },
-        onApprove: function(data){ return fetch('/api/paypal/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sku:'${sku}',tid:'1',orderId:data.orderID})}).then(r=>r.json()).then(()=>{ document.getElementById('msg').textContent='OK'; }); }
-      }).render('#paypal-buttons');
-    }
-    render();
-  })();
-</script>
-</body></html>`);
-});
-
-
-// Show the exact SDK URLs that pages will use
-app.get("/__pp-sdk-url", (req, res) => {
-  const liteUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true`;
-  const advUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true`;
-  res.type("html").send(`
-    <pre>lite: ${liteUrl}</pre>
-    <pre>advanced: ${advUrl}</pre>
-    <p><a href="${liteUrl}" target="_blank" rel="noreferrer noopener">Open lite SDK URL</a></p>
-    <p><a href="${advUrl}" target="_blank" rel="noreferrer noopener">Open advanced SDK URL</a></p>
-  `);
-});
