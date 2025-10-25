@@ -2053,189 +2053,234 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 
 
-// ==== CHECKOUT PAGE (Advanced/On-Site) ====
+
+// ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
 app.get("/checkout/:sku", (req, res) => {
   const { sku } = req.params;
-  const { tid = "" } = req.query; // Telegram-ID
+  const { tid = "" } = req.query;
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const currency = "EUR";
 
   res.type("html").send(`<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<html lang="de"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Checkout</title>
 <style>
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
-  .row{margin:16px 0}
-  .field{border:1px solid #ddd;border-radius:8px;padding:12px}
-  .methods{margin-bottom:12px}
-  .method-block{margin:12px 0}
-  #paypal-buttons{min-height:48px;min-width:280px;margin-top:8px}
-  .hidden{display:none}
-  #payBtn,#paypal-fallback{padding:12px 16px;border:0;border-radius:8px;cursor:pointer}
+  .btnrow{margin:12px 0}
+  #pp-btns,#card-btn,#gpay-btn,#apay-btn{min-height:48px;min-width:280px}
   #dbg{font-size:12px;color:#888;white-space:pre-line;margin-bottom:8px}
 </style>
-</head>
-<body>
+</head><body>
 <div id="dbg"></div>
-<h2>Zahlung</h2>
+<h2>Checkout</h2>
+<div class="btnrow"><div id="pp-btns"></div></div>
+<div class="btnrow"><div id="card-btn"></div></div>
+<div class="btnrow"><div id="apay-btn"></div></div>
+<div class="btnrow"><div id="gpay-btn"></div></div>
+<div id="msg" style="margin-top:12px;color:#555"></div>
 
-<div class="methods">
-  <div class="method-block">
-    <strong>PayPal</strong>
-    <div id="paypal-buttons"></div>
-    <button id="paypal-fallback">Mit PayPal zahlen (Fallback)</button>
-  </div>
-
-  <div class="method-block hidden" id="apple-pay">
-    <strong>Apple&nbsp;Pay</strong><br/>
-    <button id="apple-pay-button"> Pay</button>
-  </div>
-
-  <div class="method-block hidden" id="google-pay">
-    <strong>Google&nbsp;Pay</strong>
-    <div id="google-pay-button"></div>
-  </div>
-</div>
-
-<h3>Kredit-/Debitkarte</h3>
-<div class="row"><div id="card-number" class="field"></div></div>
-<div class="row" style="display:flex;gap:12px">
-  <div id="card-expiration" class="field" style="flex:1"></div>
-  <div id="card-cvv" class="field" style="flex:1"></div>
-</div>
-<div class="row">
-  <button id="payBtn">Mit Karte zahlen</button>
-  <div id="msg"></div>
-</div>
-
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,hosted-fields,applepay,googlepay&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
-<script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
 <script>
-  const SKU = ${"${JSON.stringify(sku)}"};
-  const TID = ${"${JSON.stringify(tid)}"};
+  const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\n"; }catch(e){} };
-
   dbg("clientId present: " + ${"JSON.stringify(!!clientId)"});
   dbg("SDK loaded? " + (typeof paypal !== "undefined"));
 
-  async function createOrder() {
-    const r = await fetch("/api/paypal/order", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ sku: SKU, tid: TID })
-    });
-    const j = await r.json(); return j.id;
+  async function createOrder(){ 
+    const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); 
+    const j=await r.json(); return j.id; 
   }
-  async function capture(orderId) {
-    await fetch("/api/paypal/capture", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ orderId })
-    });
-    document.getElementById("msg").textContent = "Zahlung erfolgreich ✅";
+  async function capture(id){ 
+    await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); 
+    document.getElementById("msg").textContent="Zahlung erfolgreich ✅"; 
   }
 
-  // PayPal Buttons mit robustem Fallback
-  (function(){
-    const fb = document.getElementById("paypal-fallback");
-    try{
-      if (typeof paypal !== "undefined" && paypal.Buttons) {
-        dbg("Buttons available: true");
-        paypal.Buttons({
-          createOrder,
-          onApprove: ({ orderID }) => capture(orderID),
-          onError: (err) => { dbg("Buttons error: " + (err && err.message)); fb.classList.remove("hidden"); }
-        }).render("#paypal-buttons").then(()=>{
-          dbg("Buttons rendered");
-          fb.classList.add("hidden");
-        }).catch(err => { dbg("Buttons render catch: " + err); fb.classList.remove("hidden"); });
-      } else {
-        dbg("Buttons not available");
-        fb.classList.remove("hidden");
-      }
-    }catch(e){
-      dbg("Buttons exception: " + e);
-      fb.classList.remove("hidden");
-    }
-    fb.onclick = async () => {
-      try{
-        const id = await createOrder();
-        window.location.href = "https://www.paypal.com/checkoutnow?token=" + id;
-      }catch(e){ alert("PayPal-Fallback fehlgeschlagen"); dbg("Fallback error: " + e); }
-    };
-  })();
+  // PayPal (gold)
+  try{
+    paypal.Buttons({
+      style:{ layout:"vertical", color:"gold", shape:"rect", label:"paypal" },
+      createOrder, onApprove: ({orderID}) => capture(orderID),
+      onError: e => dbg("PP error: " + (e && e.message || e))
+    }).render("#pp-btns");
+  }catch(e){ dbg("PP exception: " + e); }
 
-  // Hosted Fields (Karte)
-  (function(){
-    try{
-      if (paypal.HostedFields && paypal.HostedFields.isEligible()) {
-        dbg("HostedFields eligible: true");
-        paypal.HostedFields.render({
-          createOrder,
-          fields:{
-            number:{ selector:"#card-number", placeholder:"Kartennummer" },
-            expirationDate:{ selector:"#card-expiration", placeholder:"MM/YY" },
-            cvv:{ selector:"#card-cvv", placeholder:"CVV" }
-          }
-        }).then(hf=>{
-          document.getElementById("payBtn").onclick = async ()=>{
-            try{
-              const { orderId } = await hf.submit({});
-              await capture(orderId);
-            }catch(e){
-              document.getElementById("msg").textContent = "Kartenzahlung fehlgeschlagen";
-              dbg("HostedFields submit error: " + e);
-            }
-          };
-        });
-      } else {
-        dbg("HostedFields eligible: false");
-        document.querySelector("h3").classList.add("hidden");
-        document.getElementById("payBtn").classList.add("hidden");
-      }
-    }catch(e){ dbg("HostedFields exception: " + e); }
-  })();
+  // Card (black)
+  try{
+    const cardBtn = paypal.Buttons({
+      fundingSource: paypal.FUNDING.CARD,
+      style:{ layout:"vertical", color:"black", shape:"rect", label:"pay" },
+      createOrder, onApprove: ({orderID}) => capture(orderID),
+      onError: e => dbg("CARD error: " + (e && e.message || e))
+    });
+    if (cardBtn.isEligible()) cardBtn.render("#card-btn"); else dbg("CARD not eligible");
+  }catch(e){ dbg("CARD exception: " + e); }
 
   // Apple Pay
-  (async ()=>{
-    try{
-      const ap = paypal.Applepay && paypal.Applepay();
-      if (!ap) return;
-      const conf = await ap.config();
-      dbg("ApplePay eligible: " + !!conf?.isEligible);
-      if(conf.isEligible){
-        document.getElementById("apple-pay").classList.remove("hidden");
-        document.getElementById("apple-pay-button").onclick = async ()=>{
-          const orderId = await createOrder();
-          const session = await ap.session({ orderId, countryCode: conf.countryCode });
-          await session.begin();
-        };
-      }
-    }catch(e){ dbg("ApplePay error: " + e); }
-  })();
+  try{
+    const ap = paypal.Applepay && paypal.Applepay();
+    if (ap) {
+      ap.isEligible().then(eligible => {
+        dbg("ApplePay eligible: " + eligible);
+        if (eligible) {
+          const apBtn = ap.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) });
+          apBtn.render("#apay-btn");
+        }
+      });
+    }
+  }catch(e){ dbg("AP error: " + e); }
 
   // Google Pay
-  (async ()=>{
-    try{
-      const gp = paypal.Googlepay && paypal.Googlepay();
-      if(!gp) return;
-      const eligible = await gp.isEligible();
-      dbg("GooglePay eligible: " + !!eligible);
-      if(eligible){
-        document.getElementById("google-pay").classList.remove("hidden");
-        const btn = await gp.Buttons({
-          createOrder, onApprove: ({ orderID }) => capture(orderID)
-        });
-        btn.render("#google-pay-button");
-      }
-    }catch(e){ dbg("GooglePay error: " + e); }
-  })();
+  try{
+    const gp = paypal.Googlepay && paypal.Googlepay();
+    if (gp) {
+      gp.isEligible().then(eligible => {
+        dbg("GooglePay eligible: " + eligible);
+        if (eligible) {
+          gp.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) }).then(btn => btn.render("#gpay-btn"));
+        }
+      });
+    }
+  }catch(e){ dbg("GP error: " + e); }
 </script>
-</body>
-</html>`);
+</body></html>`);
 });
 // ==== END CHECKOUT PAGE ====
+
+// ==== DIAGNOSTIC: PURE SMART BUTTONS (PayPal + Card) ====
+app.get("/pp-test/:sku?", (req, res) => {
+  const sku = req.params.sku || "TEST_LIVE";
+  const tid = req.query.tid || "1";
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const currency = "EUR";
+  res.type("html").send(`<!doctype html>
+<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PP Test</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}#paypal-buttons{min-height:48px}</style>
+</head><body>
+<h2>PayPal Smart Buttons (Test)</h2>
+<div id="paypal-buttons"></div>
+<div id="msg" style="margin-top:12px;color:#555"></div>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay"></script>
+<script>
+  const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
+  async function createOrder(){ const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); return j.id; }
+  async function capture(id){ await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); document.getElementById("msg").textContent="Zahlung erfolgreich ✅"; }
+  paypal.Buttons({ style:{ layout:"vertical", color:"gold", shape:"rect", label:"paypal" },
+    createOrder, onApprove: ({orderID}) => capture(orderID),
+    onError: (e)=>{ document.getElementById("msg").textContent="Fehler: "+(e&&e.message||e); }
+  }).render("#paypal-buttons");
+</script>
+</body></html>`);
+});
+// ==== END DIAGNOSTIC ====
+
+app.get("/sdk-debug", (req, res) => {
+  res.json({
+    ok: true,
+    node_env: process.env.NODE_ENV,
+    domain: process.env.RAILWAY_DOMAIN,
+    has_client_id: !!process.env.PAYPAL_CLIENT_ID,
+    client_id_snippet: process.env.PAYPAL_CLIENT_ID ? (process.env.PAYPAL_CLIENT_ID.slice(0,8)+"...") : null,
+  });
+});
+// ==== CHECKOUT SMART BUTTONS (PayPal + Card + Apple/Google) ====
+app.get("/checkout-smart/:sku", (req, res) => {
+  const { sku } = req.params;
+  const { tid = "" } = req.query;
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const currency = "EUR";
+  res.type("html").send(`<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Checkout (Smart Buttons)</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
+  .btnrow{margin:12px 0}
+  #pp-btns,#card-btn,#gpay-btn,#apay-btn{min-height:48px;min-width:280px}
+  #dbg{font-size:12px;color:#888;white-space:pre-line;margin-bottom:8px}
+</style>
+</head><body>
+<div id="dbg"></div>
+<h2>Checkout</h2>
+<div class="btnrow"><div id="pp-btns"></div></div>
+<div class="btnrow"><div id="card-btn"></div></div>
+<div class="btnrow"><div id="apay-btn"></div></div>
+<div class="btnrow"><div id="gpay-btn"></div></div>
+<div id="msg" style="margin-top:12px;color:#555"></div>
+
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
+<script>
+  const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
+  const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\\n"; }catch(e){} };
+  dbg("clientId present: " + ${"JSON.stringify(!!clientId)"});
+  dbg("SDK loaded? " + (typeof paypal !== "undefined"));
+
+  async function createOrder(){ 
+    const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); 
+    const j=await r.json(); return j.id; 
+  }
+  async function capture(id){ 
+    await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); 
+    document.getElementById("msg").textContent="Zahlung erfolgreich ✅"; 
+  }
+
+  // PayPal (gold)
+  try{
+    paypal.Buttons({
+      style:{ layout:"vertical", color:"gold", shape:"rect", label:"paypal" },
+      createOrder, onApprove: ({orderID}) => capture(orderID),
+      onError: e => dbg("PP error: " + (e && e.message || e))
+    }).render("#pp-btns");
+  }catch(e){ dbg("PP exception: " + e); }
+
+  // Card (black)
+  try{
+    const cardBtn = paypal.Buttons({
+      fundingSource: paypal.FUNDING.CARD,
+      style:{ layout:"vertical", color:"black", shape:"rect", label:"pay" },
+      createOrder, onApprove: ({orderID}) => capture(orderID),
+      onError: e => dbg("CARD error: " + (e && e.message || e))
+    });
+    if (cardBtn.isEligible()) cardBtn.render("#card-btn"); else dbg("CARD not eligible");
+  }catch(e){ dbg("CARD exception: " + e); }
+
+  // Apple Pay
+  try{
+    const ap = paypal.Applepay && paypal.Applepay();
+    if (ap) {
+      ap.isEligible().then(eligible => {
+        dbg("ApplePay eligible: " + eligible);
+        if (eligible) {
+          const apBtn = ap.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) });
+          apBtn.render("#apay-btn");
+        }
+      });
+    }
+  }catch(e){ dbg("AP error: " + e); }
+
+  // Google Pay
+  try{
+    const gp = paypal.Googlepay && paypal.Googlepay();
+    if (gp) {
+      gp.isEligible().then(eligible => {
+        dbg("GooglePay eligible: " + eligible);
+        if (eligible) {
+          gp.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) }).then(btn => btn.render("#gpay-btn"));
+        }
+      });
+    }
+  }catch(e){ dbg("GP error: " + e); }
+</script>
+</body></html>`);
+});
+// ==== END CHECKOUT SMART ====
+
+
+
+
+
+
 
 
 
