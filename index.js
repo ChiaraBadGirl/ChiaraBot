@@ -2104,8 +2104,8 @@ app.get("/checkout/:sku", async (req, res) => {
 </style>
 </head><body>
   <h1>Checkout: ${cfg.name} – ${cfg.price} €</h1>
-  <div id="msg" style="margin-bottom:6px;color:#444">Lade SDK…</div>
-  <div id="sdk-url" style="font-size:12px;color:#888"></div>
+  <div id="msg" style="margin-bottom:6px;color:#444;display:none"></div>
+  
 
   <div id="paypal-buttons"></div>
   <div id="paypal-card-fallback" style="margin-top:12px"></div>
@@ -2118,10 +2118,10 @@ app.get("/checkout/:sku", async (req, res) => {
     <button id="card-pay" type="submit">Mit Karte bezahlen</button>
   </form>
 
-  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" crossorigin="anonymous" onload="document.querySelector('#msg').textContent='SDK geladen';document.querySelector('#sdk-url').textContent=this.src" onerror="document.querySelector('#msg').textContent='SDK load error';document.querySelector('#sdk-url').textContent=this.src"></script>
+  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="/* SDK loaded OK – keep msg hidden */" onerror="var m=document.getElementById('msg'); if(m){m.style.display=''; m.textContent='Laden des Zahlungs-SDK fehlgeschlagen. Bitte Seite neu laden.';}"></script>
   <script>
   const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
-  function setMsg(m){ var el=document.getElementById('msg'); if(el) el.textContent=m; }
+  function setMsg(m){ var el=document.getElementById('msg'); if(!el) return; el.style.display=''; el.textContent=m; }
 
   async function waitForSDK(){
     if (window.paypal && window.paypal.Buttons) return;
@@ -2152,12 +2152,12 @@ app.get("/checkout/:sku", async (req, res) => {
         onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
           location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
         })
-      }).render("#paypal-buttons").catch(err => setMsg("Buttons render error: "+err));
-    } catch(e){ setMsg("Buttons init error: "+e); }
+      }).render("#paypal-buttons").catch(err => setMsg("Zahlungsbuttons konnten nicht angezeigt werden. Details: "+err));
+    } catch(e){ setMsg("Zahlungsbuttons konnten nicht initialisiert werden. Details: "+e); }
 
     try {
       var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
-      setMsg("SDK geladen – HostedFields eligible: " + eligible);
+      setMsg("SDK geladen – " + eligible);
       const renderCardFallback = () => paypal.Buttons({
         fundingSource: paypal.FUNDING.CARD,
         createOrder: () => createOrderOnServer(),
@@ -2184,22 +2184,23 @@ app.get("/checkout/:sku", async (req, res) => {
               await captureOnServer(orderId);
               location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
             } catch (err) {
-              setMsg("HF submit error: " + (err && err.message || err));
+              setMsg("Kartenzahlung konnte nicht abgeschlossen werden. Details: " + (err && err.message || err));
             }
           });
         }).catch(err => {
-          setMsg("HF render error: " + (err && err.message || err) + " – zeige Karten-Button.");
+          setMsg("Die Karteneingabe ist vorübergehend nicht verfügbar – zeige Karten‑Button. Details: " + (err && err.message || err) + " – zeige Karten-Button.");
           renderCardFallback();
         });
       }
       else {
+        /* Hosted Fields ineligible – simply show card button fallback without message */
         renderCardFallback();
       }
-    } catch(e){ setMsg("HF init error: "+e); }
+    } catch(e){ setMsg("Kartenzahlung konnte nicht initialisiert werden. Details: "+e); }
   }
 
   initCheckout();
-  window.addEventListener("error", e => setMsg("JS-Fehler: "+e.message));
+  window.addEventListener("error", e => setMsg("Fehler: "+e.message));
 </script>
 </body></html>`);
   } catch (e) {
@@ -2233,7 +2234,7 @@ app.get("/pp-test/:sku?", (req, res) => {
     createOrder, onApprove: ({orderID}) => capture(orderID),
     onError: (e)=>{ document.getElementById("msg").textContent="Fehler: "+(e&&e.message||e); }
   }).render("#paypal-buttons");
-window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="JS-Fehler: "+e.message; });</script>
+window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="Fehler: "+e.message; });</script>
 </body></html>`);
 });
 // ==== END DIAGNOSTIC ====
@@ -2335,7 +2336,7 @@ app.get("/checkout-smart/:sku", (req, res) => {
       });
     }
   }catch(e){ dbg("GP error: " + e); }
-window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="JS-Fehler: "+e.message; });</script>
+window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="Fehler: "+e.message; });</script>
 </body></html>`);
 });
 // ==== END CHECKOUT SMART ====
@@ -2392,7 +2393,7 @@ app.get("/pp-lite/:sku?", (req, res) => {
 <div id="paypal-buttons"></div>
   <div id="paypal-card-fallback" style="margin-top:12px"></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
-<script id="pp-sdk" src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card" onload="document.getElementById('msg').textContent='SDK geladen';" onerror="document.getElementById('msg').textContent='SDK load error'"></script>
+<script id="pp-sdk" onload="/* SDK loaded OK – keep msg hidden */" onerror="var m=document.getElementById('msg'); if(m){m.style.display=''; m.textContent='Laden des Zahlungs-SDK fehlgeschlagen. Bitte Seite neu laden.';}"></script>
 <script>
   (function() {
     function render() {
