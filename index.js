@@ -28,10 +28,11 @@ function log(level, ...args) {
     else { console.error(...args); }
   }
 }
-// Neutrale PayPal-Benennungen (über ENV überschreibbar)
-const PAYPAL_BRAND = process.env.PAYPAL_BRAND || "Bianca Utter";
-const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
-const PAYPAL_DESC = process.env.PAYPAL_DESC || "Online Access & Merch";
+// Neutrale PayPal-Benennungen (über ENV überschreibbar; akzeptiert PAYPAL_* oder PAYMENT_*)
+const PAYPAL_BRAND = process.env.PAYPAL_BRAND || process.env.PAYMENT_BRAND || "Bianca Utter";
+const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || process.env.PAYMENT_ITEM_NAME || "Digital Service";
+const PAYPAL_DESC = process.env.PAYPAL_DESC || process.env.PAYMENT_DESC || "Online Access & Merch";
+
 
 
 // 🔹 Funktion zum Escapen von MarkdownV2-Zeichen
@@ -46,6 +47,42 @@ let environment = new paypal.core.LiveEnvironment(
     PAYPAL_CLIENT_SECRET
 );
 let client = new paypal.core.PayPalHttpClient(environment);
+// Helper: unify client access
+function paypalClient(){ return client; }
+// === OAuth2 Access Token & Client Token for Hosted Fields ===
+async function generateAccessTokenRAW() {
+  const creds = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
+  const base = (environment instanceof paypal.core.SandboxEnvironment)
+    ? "https://api-m.sandbox.paypal.com"
+    : "https://api-m.paypal.com";
+  const resp = await fetch(`${base}/v1/oauth2/token`, {
+    method: "POST",
+    headers: { "Authorization": `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials"
+  });
+  if (!resp.ok) throw new Error("OAuth failed " + resp.status + " " + await resp.text());
+  return (await resp.json()).access_token;
+}
+
+async function generateClientToken() {
+  const base = (environment instanceof paypal.core.SandboxEnvironment)
+    ? "https://api-m.sandbox.paypal.com"
+    : "https://api-m.paypal.com";
+  const accessToken = await generateAccessTokenRAW();
+  const resp = await fetch(`${base}/v1/identity/generate-token`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "Accept-Language": "de-DE"
+    }
+  });
+  if (!resp.ok) throw new Error("ClientToken failed " + resp.status + " " + await resp.text());
+  const data = await resp.json();
+  return data.client_token;
+}
+
+
 // --- PayPal Webhook-Signatur prüfen (nimmt Headers + Event-Objekt)
 const PAYPAL_API_BASE = (environment instanceof paypal.core.SandboxEnvironment)
   ? "https://api-m.sandbox.paypal.com"
@@ -319,16 +356,15 @@ app.get("/paypal/return", async (req, res) => {
     if (!orderId || !sku || !telegramId) {
       return res.status(400).send("❌ Parameter fehlen.");
     }
-
-    const captureReq = new paypal.orders.OrdersCaptureRequest(orderId);
-    captureReq.requestBody({}); // leeres Body laut Spec
-    const captureRes = await client.execute(captureReq);
-
-    const cap = captureRes?.result?.purchase_units?.[0]?.payments?.captures?.[0];
-    const amount = cap?.amount?.value;
-    const currency = cap?.amount?.currency_code;
-
-    await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount, currency });
+    // Bereits serverseitig (oder per Webhook) gecaptured & fulfilled.
+    res.send(`<h1>✅ Zahlung erfolgreich!</h1>
+      <p>${sku} wurde freigeschaltet.</p>
+      <p>Du kannst jetzt zu Telegram zurückkehren.</p>`);
+  } catch (err) {
+    console.error("❌ Fehler in /paypal/return:", err);
+    res.status(500).send("Interner Fehler");
+  }
+});
 
     res.send(`<h1>✅ Zahlung erfolgreich!</h1>
       <p>${sku} wurde freigeschaltet.</p>
@@ -2014,7 +2050,7 @@ app.post("/api/paypal/order", express.json(), async (req, res) => {
       }],
     });
 
-    const order = await paypalClient().execute(request);
+    const order = await client.execute(request);
     res.json({ id: order.result.id });
   } catch (e) {
     console.error("create order error:", e);
@@ -2029,7 +2065,7 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
     const capReq = new paypal.orders.OrdersCaptureRequest(orderId);
     capReq.requestBody({});
-    const cap = await paypalClient().execute(capReq);
+    const cap = await client.execute(capReq);
 
     const unit = cap.result?.purchase_units?.[0];
     const capture = unit?.payments?.captures?.[0];
@@ -2055,96 +2091,71 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 
 // ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
-app.get("/checkout/:sku", (req, res) => {
-  const { sku } = req.params;
-  const { tid = "" } = req.query;
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const currency = "EUR";
-
-  res.type("html").send(`<!doctype html>
-<html lang="de"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Checkout</title>
+app.get("/checkout/:sku", async (req, res) => {
+  try {
+    const sku = req.params.sku;
+    const tid = String(req.query.tid || "");
+    const item = skuConfig[sku];
+    if (!item || !/^\d+$/.test(tid)) return res.status(400).send("❌ Ungültige Parameter.");
+    const clientToken = await generateClientToken();
+    const clientId = PAYPAL_CLIENT_ID;
+    const currency = "EUR";
+    res.type("html").send(`<!doctype html>
+<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Checkout – ${sku}</title>
 <style>
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
-  .btnrow{margin:12px 0}
-  #pp-btns,#card-btn,#gpay-btn,#apay-btn{min-height:48px;min-width:280px}
-  #dbg{font-size:12px;color:#888;white-space:pre-line;margin-bottom:8px}
+  .row{margin:12px 0}
+  #paypal-buttons,#card-number,#card-expiration,#card-cvv{min-height:40px}
 </style>
 </head><body>
-<div id="dbg"></div>
-<h2>Checkout</h2>
-<div class="btnrow"><div id="pp-btns"></div></div>
-<div class="btnrow"><div id="card-btn"></div></div>
-<div class="btnrow"><div id="apay-btn"></div></div>
-<div class="btnrow"><div id="gpay-btn"></div></div>
-<div id="msg" style="margin-top:12px;color:#555"></div>
+<h2>Checkout: ${item.name} – ${item.price} €</h2>
+<div class="row" id="paypal-buttons"></div>
+<form id="card-form" class="row">
+  <div id="card-number"></div>
+  <div id="card-expiration"></div>
+  <div id="card-cvv"></div>
+  <button id="pay-card" type="submit">Mit Karte bezahlen</button>
+</form>
+<div id="msg" class="row" style="color:#555"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=CAPTURE&components=buttons,hosted-fields" data-client-token="${clientToken}"></script>
 <script>
-  const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
-  const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\n"; }catch(e){} };
-  dbg("clientId present: " + ${"JSON.stringify(!!clientId)"});
-  dbg("SDK loaded? " + (typeof paypal !== "undefined"));
+  const SKU=${JSON.stringify('${sku}')}, TID=${JSON.stringify('${tid}')};
+  async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
+  async function capture(id){ const r=await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"cap"); return j; }
 
-  async function createOrder(){ 
-    const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); 
-    const j=await r.json(); return j.id; 
-  }
-  async function capture(id){ 
-    await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); 
-    document.getElementById("msg").textContent="Zahlung erfolgreich ✅"; 
-  }
+  paypal.Buttons({ createOrder, onApprove: ({orderID}) => capture(orderID).then(()=>{
+    window.location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
+  })}).render("#paypal-buttons");
 
-  // PayPal (gold)
-  try{
-    paypal.Buttons({
-      style:{ layout:"vertical", color:"gold", shape:"rect", label:"paypal" },
-      createOrder, onApprove: ({orderID}) => capture(orderID),
-      onError: e => dbg("PP error: " + (e && e.message || e))
-    }).render("#pp-btns");
-  }catch(e){ dbg("PP exception: " + e); }
-
-  // Card (black)
-  try{
-    const cardBtn = paypal.Buttons({
-      fundingSource: paypal.FUNDING.CARD,
-      style:{ layout:"vertical", color:"black", shape:"rect", label:"pay" },
-      createOrder, onApprove: ({orderID}) => capture(orderID),
-      onError: e => dbg("CARD error: " + (e && e.message || e))
+  if (paypal.HostedFields && paypal.HostedFields.isEligible()) {
+    paypal.HostedFields.render({
+      fields: {
+        number: { selector: "#card-number", placeholder: "Kartennummer" },
+        expirationDate: { selector: "#card-expiration", placeholder: "MM/YY" },
+        cvv: { selector: "#card-cvv", placeholder: "CVV" }
+      }
+    }).then(hf => {
+      document.getElementById("card-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const orderId = await createOrder();
+        await hf.submit({ contingencies: ["3D_SECURE"] });
+        await capture(orderId);
+        window.location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
+      });
     });
-    if (cardBtn.isEligible()) cardBtn.render("#card-btn"); else dbg("CARD not eligible");
-  }catch(e){ dbg("CARD exception: " + e); }
-
-  // Apple Pay
-  try{
-    const ap = paypal.Applepay && paypal.Applepay();
-    if (ap) {
-      ap.isEligible().then(eligible => {
-        dbg("ApplePay eligible: " + eligible);
-        if (eligible) {
-          const apBtn = ap.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) });
-          apBtn.render("#apay-btn");
-        }
-      });
-    }
-  }catch(e){ dbg("AP error: " + e); }
-
-  // Google Pay
-  try{
-    const gp = paypal.Googlepay && paypal.Googlepay();
-    if (gp) {
-      gp.isEligible().then(eligible => {
-        dbg("GooglePay eligible: " + eligible);
-        if (eligible) {
-          gp.Buttons({ createOrder, onApprove: ({orderID})=>capture(orderID) }).then(btn => btn.render("#gpay-btn"));
-        }
-      });
-    }
-  }catch(e){ dbg("GP error: " + e); }
+  } else {
+    document.getElementById("card-form").style.display = "none";
+  }
 </script>
 </body></html>`);
+  } catch (e) {
+    console.error("checkout error", e);
+    res.status(500).send("Interner Fehler (Checkout)");
+  }
 });
+
 // ==== END CHECKOUT PAGE ====
 
 // ==== DIAGNOSTIC: PURE SMART BUTTONS (PayPal + Card) ====
