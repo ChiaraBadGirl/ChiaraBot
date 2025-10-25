@@ -33,16 +33,6 @@ const PAYPAL_BRAND = process.env.PAYPAL_BRAND || "Bianca Utter";
 const PAYPAL_ITEM_NAME = process.env.PAYPAL_ITEM_NAME || "Digital Service";
 const PAYPAL_DESC = process.env.PAYPAL_DESC || "Online Access & Merch";
 
-// === SumUp Konfiguration ===
-const SUMUP_CLIENT_ID = process.env.SUMUP_CLIENT_ID || "";
-const SUMUP_CLIENT_SECRET = process.env.SUMUP_CLIENT_SECRET || "";
-const SUMUP_MERCHANT_CODE = process.env.SUMUP_MERCHANT_CODE || "";
-const SUMUP_ENV = process.env.SUMUP_ENV || "live"; // "live" oder "sandbox"
-const SUMUP_BRAND = process.env.SUMUP_BRAND || PAYPAL_BRAND;
-const SUMUP_ITEM_NAME = process.env.SUMUP_ITEM_NAME || PAYPAL_ITEM_NAME;
-const SUMUP_DESC = process.env.SUMUP_DESC || PAYPAL_DESC;
-
-
 
 // 🔹 Funktion zum Escapen von MarkdownV2-Zeichen
 function mdEscape(text) {
@@ -113,86 +103,8 @@ VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",    
 };
 
 function payUrl(sku, telegramId) {
-  return `https://${RAILWAY_DOMAIN}/pay/${sku}?tid=${telegramId}`;
+  return `https://${RAILWAY_DOMAIN}/checkout/${sku}?tid=${telegramId}`;
 }
-
-// Helper: SumUp Redirect URL (server route)
-function sumupUrl(sku, telegramId) {
-  return `https://${RAILWAY_DOMAIN}/sumup/checkout/${sku}?tid=${telegramId}`;
-}
-
-// SumUp OAuth Token holen (Client Credentials)
-let _sumupTokenCache = { token: null, exp: 0 };
-async function getSumupToken() {
-  const now = Date.now();
-  if (_sumupTokenCache.token && now < _sumupTokenCache.exp) {
-    return _sumupTokenCache.token;
-  }
-  const resp = await fetch('https://api.sumup.com/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: SUMUP_CLIENT_ID,
-      client_secret: SUMUP_CLIENT_SECRET,
-      scope: 'payments'
-    })
-  });
-  if (!resp.ok) {
-    const txt = await resp.text();
-    throw new Error(`SumUp Token-Fehler: ${resp.status} ${txt}`);
-  }
-  const data = await resp.json();
-  // Token meist 3600s gültig
-  _sumupTokenCache = { token: data.access_token, exp: Date.now() + (Math.max(1, (data.expires_in||3600)-60) * 1000) };
-  return data.access_token;
-}
-
-// SumUp Checkout anlegen (Hosted Checkout)
-async function createSumupCheckout({ amount, currency, description, reference, redirectUrl }) {
-  const token = await getSumupToken();
-  const body = {
-    checkout_reference: reference,
-    amount: Number(amount),
-    currency,
-    description,
-    merchant_code: SUMUP_MERCHANT_CODE || undefined,
-    redirect_url: redirectUrl,
-    // aktivieren des Hosted-Checkout Links
-    'hosted_checkout': { 'enabled': true }
-  };
-  const resp = await fetch('https://api.sumup.com/v0.1/checkouts', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  const txt = await resp.text();
-  let data;
-  try { data = JSON.parse(txt); } catch { data = null; }
-  if (!resp.ok) {
-    throw new Error(`SumUp Checkout-Fehler: ${resp.status} ${txt}`);
-  }
-  return data; // enthält id und ggf. hosted_checkout_url
-}
-
-// SumUp Checkout Status abrufen
-async function getSumupCheckout(checkoutId) {
-  const token = await getSumupToken();
-  const resp = await fetch(`https://api.sumup.com/v0.1/checkouts/${checkoutId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!resp.ok) {
-    const txt = await resp.text();
-    throw new Error(`SumUp Get Checkout-Fehler: ${resp.status} ${txt}`);
-  }
-  return await resp.json();
-}
-
 
 // Idempotentes Fulfillment an EINER Stelle
 async function fulfillOrder({ telegramId, sku, amount, currency }) {
@@ -426,89 +338,6 @@ app.get("/paypal/return", async (req, res) => {
     res.status(500).send("Interner Fehler");
   }
 });
-
-// === SumUp Hosted Checkout Routes ===
-// Start: Checkout anlegen und zu SumUp weiterleiten
-app.get("/sumup/checkout/:sku", async (req, res) => {
-  try {
-    const sku = String(req.params.sku || "");
-    const telegramId = String(req.query.tid || "");
-    const cfg = skuConfig[sku];
-    if (!cfg || !telegramId || !/^\d+$/.test(telegramId)) {
-      return res.status(400).send("❌ Ungültige Parameter.");
-    }
-    const amount = cfg.price;
-    const currency = "EUR";
-    const reference = `${sku}:${Date.now()}:${telegramId}`;
-    const redirectUrl = `https://${RAILWAY_DOMAIN}/sumup/thanks?sku=${encodeURIComponent(sku)}&tid=${encodeURIComponent(telegramId)}`;
-
-    const co = await createSumupCheckout({
-      amount,
-      currency,
-      description: SUMUP_ITEM_NAME || "Digital Service",
-      reference,
-      redirectUrl
-    });
-
-    const hostedUrl = co.hosted_checkout_url || co.checkout_url;
-    if (!hostedUrl) {
-      console.error("❌ SumUp Antwort ohne hosted URL:", co);
-      return res.status(500).send("Fehler bei SumUp (keine URL)");
-    }
-    return res.redirect(302, hostedUrl);
-  } catch (err) {
-    console.error("❌ Fehler in /sumup/checkout:", err);
-    res.status(500).send("Interner Fehler (SumUp)");
-  }
-});
-
-// Rückkehr des Käufers nach 3DS/Bezahlung – wir prüfen den Checkout-Status
-app.get("/sumup/thanks", async (req, res) => {
-  try {
-    const { checkout_id, sku, tid: telegramId } = req.query;
-    // SumUp hängt checkout_id an redirect_url an (3DS Flow)
-    if (!checkout_id || !sku || !telegramId) {
-      return res.status(400).send("❌ Parameter fehlen.");
-    }
-    const details = await getSumupCheckout(checkout_id);
-    const status = (details && (details.status || details.transaction_code || details.transaction_id)) ? (details.status || 'UNKNOWN') : 'UNKNOWN';
-    console.log("ℹ️ SumUp Checkout Status:", details?.status, "id:", checkout_id);
-
-    if (String(details?.status).toUpperCase() === "PAID") {
-      await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount: String(details?.amount), currency: String(details?.currency || "EUR"), provider: "sumup", txId: String(checkout_id) });
-      return res.send(`<h1>✅ Zahlung erfolgreich (SumUp)</h1>
-        <p>${sku} wurde freigeschaltet.</p>
-        <p>Du kannst jetzt zu Telegram zurückkehren.</p>`);
-    } else {
-      return res.send(`<h1>ℹ️ Status: ${status}</h1>
-        <p>Falls bereits bezahlt, wird der Zugriff in Kürze freigeschaltet.</p>`);
-    }
-  } catch (err) {
-    console.error("❌ Fehler in /sumup/thanks:", err);
-    res.status(500).send("Interner Fehler");
-  }
-});
-
-// Optional: Server-zu-Server Callback (falls in SumUp konfiguriert)
-app.post("/webhook/sumup", express.json(), async (req, res) => {
-  try {
-    const body = req.body || {};
-    console.log("📬 SumUp Webhook:", JSON.stringify(body));
-    const status = String(body.status || "").toUpperCase();
-    const checkoutId = body.id || body.checkout_id || body.transaction_id;
-    const sku = body.checkout_reference?.split(":")?.[0];
-    const telegramId = body.checkout_reference?.split(":")?.[2] || "";
-
-    if (status === "PAID" && checkoutId && sku && telegramId) {
-      await fulfillOrder({ telegramId: String(telegramId), sku: String(sku), amount: String(body.amount || 0), currency: String(body.currency || "EUR"), provider: "sumup", txId: String(checkoutId) });
-    }
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ Fehler in /webhook/sumup:", err);
-    res.sendStatus(200);
-  }
-});
-
 
 app.get("/success", async (req, res) => {
   try {
@@ -926,8 +755,8 @@ const paypalLink_FullAccess = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
 
   // SumUp Links
-  const sumupKredit = sumupUrl('FULL_ACCESS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
 
   await ctx.editMessageText(
     '💳 *Wähle deine Zahlungsmethode für Full Access Pass:*',
@@ -992,8 +821,8 @@ const paypalLink_VideoPack5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_5&price=50` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('VIDEO_PACK_5', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 5 Videos:*',
     {
@@ -1038,8 +867,8 @@ const paypalLink_VideoPack10 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_10&price=90` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('VIDEO_PACK_10', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 10 Videos:*',
     {
@@ -1084,8 +913,8 @@ const paypalLink_VideoPack15 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=VIDEO_PACK_15&price=120` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('VIDEO_PACK_15', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 15 Videos:*',
     {
@@ -1184,8 +1013,8 @@ const paypalLink_DaddyBronze = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_BRONZE&price=80` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('DADDY_BRONZE', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Daddy Bronze:*',
     {
@@ -1233,8 +1062,8 @@ const paypalLink_DaddySilber = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_SILBER&price=150` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('DADDY_SILBER', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Daddy Silber:*',
     {
@@ -1282,8 +1111,8 @@ const paypalLink_DaddyGold = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick`
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DADDY_GOLD&price=225` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('DADDY_GOLD', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Daddy Gold:*',
     {
@@ -1359,8 +1188,8 @@ const paypalLink_GirlfriendPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xc
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=GF_PASS&price=150` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('GF_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Girlfriend Pass:*',
     {
@@ -1422,8 +1251,8 @@ const paypalLink_DominaPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=DOMINA_PASS&price=150` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('DOMINA_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Domina Pass:*',
     {
@@ -1472,8 +1301,8 @@ const paypalLink_VIPPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
 
   // SumUp Links (Platzhalter)
-  const sumupKredit = sumupUrl('VIP_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
 
   await ctx.editMessageText(
     '💳 *Wähle deine Zahlungsmethode für VIP Pass:*',
@@ -1547,8 +1376,8 @@ const paypalLink_Custom3 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM3_PASS&price=100` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('CUSTOM3_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 3 Min Custom Video:*',
     {
@@ -1593,8 +1422,8 @@ const paypalLink_Custom5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=CUSTOM5_PASS&price=140` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('CUSTOM5_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für 5 Min Custom Video:*',
     {
@@ -1657,8 +1486,8 @@ const paypalLink_Panty = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=PANTY_PASS&price=40` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('PANTY_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Panty:*',
     {
@@ -1703,8 +1532,8 @@ const paypalLink_Socks = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
   `&custom=${telegramId}` +
   `&return=https://${RAILWAY_DOMAIN}/success?telegramId=${telegramId}&productName=SOCKS_PASS&price=30` +
   `&cancel_return=https://${RAILWAY_DOMAIN}/cancel?telegramId=${telegramId}`;
-  const sumupKredit = sumupUrl('SOCKS_PASS', telegramId);
-  const sumupAppleGoogle = sumupKredit;
+  const sumupKredit = `https://sumup.com/deinlink-kredit`;
+  const sumupAppleGoogle = `https://sumup.com/deinlink-apple-google`;
   await ctx.editMessageText(
     '💳 *Wähle Zahlungsmethode für Socks:*',
     {
@@ -2151,101 +1980,6 @@ app.post(
 
 // 🚫 Legacy-Alias neutralisieren – tut nichts mehr
 app.all("/paypal/webhook", (req, res) => res.sendStatus(204));
-
-// ====== Basic Health & Root endpoints ======
-app.get("/", (req, res) => {
-  res.send("ChiaraBot up ✅");
-});
-
-app.get("/health", (req, res) => {
-  res.json({
-    ok: true,
-    env: process.env.NODE_ENV || "production",
-    domain: process.env.RAILWAY_DOMAIN || "chiarabot-production.up.railway.app",
-    time: new Date().toISOString(),
-  });
-});
-
-// simple webhook health for quick check
-app.get("/webhook/paypal", (req, res) => res.send("PayPal Webhook OK"));
-// ===========================================
-
-// ==== PAYPAL ADVANCED CHECKOUT – SERVER APIS ====
-
-// Map SKU -> info
-function getSkuInfo(sku) {
-  try {
-    if (typeof skuConfig === "object" && skuConfig[sku]) {
-      const item = skuConfig[sku];
-      return {
-        amount: String(item.amount || item.price || "1.00"),
-        currency: item.currency || "EUR",
-        description: item.description || item.name || sku,
-      };
-    }
-  } catch (e) {}
-  return { amount: "1.00", currency: "EUR", description: sku };
-}
-
-// Create order (called by browser)
-app.post("/api/paypal/order", express.json(), async (req, res) => {
-  try {
-    const { sku, tid } = req.body || {};
-    if (!sku || !tid) return res.status(400).json({ error: "missing sku/tid" });
-
-    const { amount, currency, description } = getSkuInfo(sku);
-
-    const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer("return=representation");
-    request.requestBody({
-      intent: "CAPTURE",
-      purchase_units: [{
-        description,
-        custom_id: String(tid),
-        invoice_id: `${sku}:${tid}:${Date.now()}`,
-        amount: { currency_code: currency, value: amount },
-      }],
-    });
-
-    const order = await paypalClient().execute(request);
-    res.json({ id: order.result.id });
-  } catch (e) {
-    console.error("create order error:", e);
-    res.status(500).json({ error: "order_failed" });
-  }
-});
-
-// Capture order (called by browser after approval/hostedFields submit)
-app.post("/api/paypal/capture", express.json(), async (req, res) => {
-  try {
-    const { orderId } = req.body || {};
-    if (!orderId) return res.status(400).json({ error: "missing orderId" });
-
-    const capReq = new paypal.orders.OrdersCaptureRequest(orderId);
-    capReq.requestBody({});
-    const cap = await paypalClient().execute(capReq);
-
-    const unit = cap.result?.purchase_units?.[0];
-    const capture = unit?.payments?.captures?.[0];
-    const sku = unit?.invoice_id?.split(":")?.[0];
-    const tid = unit?.custom_id;
-    const amount = capture?.amount?.value;
-    const currency = capture?.amount?.currency_code;
-
-    if (sku && tid) {
-      await fulfillOrder({ telegramId: String(tid), sku, amount, currency });
-    }
-    res.json({ ok: true });
-  } catch (e) {
-    console.error("capture error:", e);
-    res.status(200).json({ ok: false });
-  }
-});
-// ==== END PAYPAL APIS ====
-
-
-
-
 
 
   app.listen(PORT, () => {
