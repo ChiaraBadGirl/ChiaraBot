@@ -2119,7 +2119,22 @@ app.get("/checkout/:sku", async (req, res) => {
 
   <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" crossorigin="anonymous" onload="document.querySelector('#msg').textContent='SDK geladen';document.querySelector('#sdk-url').textContent=this.src" onerror="document.querySelector('#msg').textContent='SDK load error';document.querySelector('#sdk-url').textContent=this.src"></script>
   <script>
-    const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
+  const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
+  function setMsg(m){ var el=document.getElementById('msg'); if(el) el.textContent=m; }
+
+  async function waitForSDK(){
+    if (window.paypal && window.paypal.Buttons) return;
+    await new Promise(resolve => {
+      const i = setInterval(() => {
+        if (window.paypal && window.paypal.Buttons) { clearInterval(i); resolve(); }
+      }, 30);
+      setTimeout(() => { clearInterval(i); resolve(); }, 8000);
+    });
+  }
+
+  async function initCheckout(){
+    try { await waitForSDK(); } catch(e){}
+    if (!window.paypal) { setMsg("SDK nicht verfügbar"); return; }
 
     async function createOrderOnServer() {
       const r = await fetch("/api/paypal/order", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID }) });
@@ -2130,9 +2145,6 @@ app.get("/checkout/:sku", async (req, res) => {
       const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
     }
 
-    function setMsg(m){ var el=document.getElementById('msg'); if(el) el.textContent=m; }
-
-    // Render PayPal Buttons
     try {
       paypal.Buttons({
         createOrder: () => createOrderOnServer(),
@@ -2142,41 +2154,41 @@ app.get("/checkout/:sku", async (req, res) => {
       }).render("#paypal-buttons").catch(err => setMsg("Buttons render error: "+err));
     } catch(e){ setMsg("Buttons init error: "+e); }
 
-    // Hosted Fields
     try {
       var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
-      setMsg("SDK geladen – HostedFields eligible: "+eligible);
+      setMsg("SDK geladen – HostedFields eligible: " + eligible);
       if (eligible) {
-        
-paypal.HostedFields.render({
-  createOrder: () => createOrderOnServer(),
-  fields: {
-    number:     { selector: "#card-number", placeholder: "Kartennummer" },
-    expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
-    cvv:        { selector: "#card-cvv", placeholder: "CVV" }
-  }
-}).then(hf => {
-  document.getElementById("card-form").style.display = "";
-  document.getElementById("card-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    try {
-      const result = await hf.submit({ contingencies: ["3D_SECURE"] });
-      const orderId = (result && (result.orderId || result.orderID)) || null;
-      if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
-      await captureOnServer(orderId);
-      location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
-    } catch (err) {
-      setMsg("HF submit error: " + (err && err.message || err));
-    }
-  });
-}).catch(err => {
-  setMsg("HF render error: " + (err && err.message || err));
-});
-);
+        paypal.HostedFields.render({
+          createOrder: () => createOrderOnServer(),
+          fields: {
+            number:     { selector: "#card-number", placeholder: "Kartennummer" },
+            expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
+            cvv:        { selector: "#card-cvv", placeholder: "CVV" }
+          }
+        }).then(hf => {
+          document.getElementById("card-form").style.display = "";
+          document.getElementById("card-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            try {
+              const result = await hf.submit({ contingencies: ["3D_SECURE"] });
+              const orderId = (result && (result.orderId || result.orderID)) || null;
+              if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
+              await captureOnServer(orderId);
+              location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
+            } catch (err) {
+              setMsg("HF submit error: " + (err && err.message || err));
+            }
+          });
+        }).catch(err => {
+          setMsg("HF render error: " + (err && err.message || err));
+        });
       }
     } catch(e){ setMsg("HF init error: "+e); }
-    window.addEventListener("error", e => setMsg("JS-Fehler: "+e.message));
-  </script>
+  }
+
+  initCheckout();
+  window.addEventListener("error", e => setMsg("JS-Fehler: "+e.message));
+</script>
 </body></html>`);
   } catch (e) {
     console.error("checkout page error:", e);
