@@ -2097,28 +2097,71 @@ app.get("/checkout/:sku", async (req, res) => {
 <html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Checkout: ${cfg.name} – ${cfg.price} €</title>
 <style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
-  #paypal-buttons{min-height:48px;margin:16px 0}
-  #card-form{display:none;margin-top:16px}
-  .row{margin:8px 0}
+  :root{
+    --bg:#0b0c0f; --card:#12141a; --text:#fff; --muted:#98a2b3; --accent:#7c5cff; --ring:rgba(124,92,255,.25);
+  }
+  @media (prefers-color-scheme:light){
+    :root{ --bg:#f6f7fb; --card:#ffffff; --text:#0b0c0f; --muted:#55627a; --accent:#6f5aff; --ring:rgba(124,92,255,.18); }
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{
+    margin:0;padding:clamp(16px,3.6vw,28px);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+    color:var(--text);
+    background:
+      radial-gradient(1000px 600px at 80% -10%, rgba(124,92,255,.10), transparent 60%),
+      radial-gradient(800px 500px at -10% 10%, rgba(0,161,255,.10), transparent 60%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .badge{width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,var(--accent),#4f46e5);box-shadow:0 10px 26px var(--ring)}
+  .brand h1{margin:0;font-size:clamp(22px,3.8vw,28px);font-weight:800;letter-spacing:.2px}
+  .card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.06);
+    box-shadow:0 18px 40px -18px rgba(0,0,0,.4), 0 2px 6px -2px rgba(0,0,0,.25);padding:clamp(16px,3.6vw,28px);}
+  .summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding-bottom:14px;margin-bottom:14px;border-bottom:1px dashed rgba(255,255,255,.12);}
+  .summary .name{font-weight:700;font-size:clamp(18px,3.4vw,22px)}
+  .summary .price{font-weight:800;font-size:clamp(18px,3.4vw,22px)}
+  .pay{margin-top:8px}
+  #paypal-buttons{min-height:48px;margin:12px 0}
+  #paypal-card-fallback{margin:12px 0}
+  #card-form{display:none;margin-top:8px}
+  .row{margin-top:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:10px}
+  .fine{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .lock{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-radius:3px;position:relative;transform:translateY(2px)}
+  .lock:before{content:"";position:absolute;left:2px;top:-7px;width:8px;height:6px;border:2px solid var(--muted);border-bottom:none;border-radius:8px 8px 0 0}
+  @media (prefers-color-scheme:light){
+    .row{background:#f4f6fb;border-color:#e8ecf4}
+    .card{border-color:#eef0f7;box-shadow:0 18px 36px -18px rgba(47,45,86,.25),0 2px 8px -2px rgba(47,45,86,.08)}
+  }
+  .cta{margin-top:12px;width:100%;height:44px;border:none;border-radius:10px;font-weight:700;
+    background:linear-gradient(135deg,var(--accent),#4f46e5);color:#fff;box-shadow:0 10px 24px var(--ring);}
 </style>
 </head><body>
-  <h1>Checkout: ${cfg.name} – ${cfg.price} €</h1>
-  
-  
-
-  <div id="paypal-buttons"></div>
-  <div id="paypal-card-fallback" style="margin-top:12px"></div>
-  <div id="paypal-card-fallback"></div>
-
-  <form id="card-form">
-    <div class="row" id="card-number"></div>
-    <div class="row" id="card-expiration"></div>
-    <div class="row" id="card-cvv"></div>
-    <button id="card-pay" type="submit">Mit Karte bezahlen</button>
-  </form>
-
-  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="" onerror=""></script>
+  <div class="wrap">
+    <div class="brand"><div class="badge" aria-hidden="true"></div><h1>${process.env.PAYMENT_BRAND || 'Checkout'}</h1></div>
+    <div class="card">
+      <div class="summary">
+        ${process.env.PAYMENT_IMAGE_URL ? '<img src="' + process.env.PAYMENT_IMAGE_URL + '" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;margin-right:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);" />' : ''}
+        <div class="name">${cfg.name}</div>
+        <div class="price">${cfg.price} €</div>
+      </div>
+      <div class="pay">
+        <div id="paypal-buttons"></div>
+        <div id="paypal-card-fallback"></div>
+        <form id="card-form">
+          <div class="row" id="card-number"></div>
+          <div class="row" id="card-expiration"></div>
+          <div class="row" id="card-cvv"></div>
+          <button id="card-pay" type="submit" class="cta">Mit Karte bezahlen</button>
+        </form>
+        <div class="fine"><span class="lock"></span><span>SSL-gesicherte Zahlung</span> · <span>Abgewickelt durch PayPal</span></div>
+      </div>
+    </div>
+  </div>
+https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="" onerror=""></script>
   <script>
   const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
   function setMsg(m){}
