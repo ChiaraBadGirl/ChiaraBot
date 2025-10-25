@@ -120,10 +120,11 @@ async function verifyPaypalSignature(headers, eventObj) {
 
 // === PayPal: SKU-Config & Helpers (modern Checkout) ===
 const ENABLE_TEST_SKU = process.env.ENABLE_TEST_SKU === 'true';
+const TEST_SKUS = ENABLE_TEST_SKU ? { TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 } } : {};
 
 const skuConfig = {
-    ......(ENABLE_TEST_SKU ? { TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 } } : {}),
-VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
+  ...TEST_SKUS,
+  VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
   FULL_ACCESS:   { name: "Full Access (1M)",    price: "50.00", status: "FULL",           days: 30 },
   VIDEO_PACK_5:  { name: "Video Pack 5",        price: "50.00", status: "VIDEO_PACK_5",  days: 9999 },
   VIDEO_PACK_10: { name: "Video Pack 10",       price: "90.00", status: "VIDEO_PACK_10", days: 9999 },
@@ -131,8 +132,8 @@ VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",    
   DADDY_BRONZE:  { name: "Daddy Bronze",        price: "80.00", status: "DADDY_BRONZE",  days: 30 },
   DADDY_SILBER:  { name: "Daddy Silber",        price: "150.00",status: "DADDY_SILBER",  days: 30 },
   DADDY_GOLD:    { name: "Daddy Gold",          price: "225.00",status: "DADDY_GOLD",    days: 30 },
-  GF_PASS:       { name: "Girlfriend Pass",     price: "150.00",status: "GF",             days: 7  },
-  DOMINA_PASS:   { name: "Domina / Slave Pass", price: "150.00",status: "SLAVE",          days: 7  },
+  GF_PASS:       { name: "Girlfriend Pass",     price: "150.00",status: "GF",            days: 7  },
+  DOMINA_PASS:   { name: "Domina / Slave Pass", price: "150.00",status: "SLAVE",         days: 7  },
   CUSTOM3_PASS:  { name: "Custom Video 3 Min",  price: "100.00",status: "CUSTOM3_PASS",  days: 9999 },
   CUSTOM5_PASS:  { name: "Custom Video 5 Min",  price: "140.00",status: "CUSTOM5_PASS",  days: 9999 },
   PANTY_PASS:    { name: "Panty",               price: "40.00", status: "PANTY_PASS",    days: 0   },
