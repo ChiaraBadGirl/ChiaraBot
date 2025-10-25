@@ -2110,8 +2110,9 @@ app.get("/checkout/:sku", async (req, res) => {
   <button id="pay-card" type="submit">Mit Karte bezahlen</button>
 </form>
 <div id="msg" class="row" style="color:#555"></div>
+<div id="sdk-url" style="margin-top:6px;color:#888;font-size:12px"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&commit=true" data-client-token="${clientToken}" id="pp-sdk" onload="document.getElementById('msg').textContent='SDK geladen';" onerror="document.getElementById('msg').textContent='SDK load error';"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&commit=true" data-client-token="${clientToken}" id="pp-sdk" onload="document.getElementById('msg').textContent='SDK geladen';document.getElementById('sdk-url').textContent=this.src;" onerror="document.getElementById('msg').textContent='SDK load error';document.getElementById('sdk-url').textContent=this.src;"></script>
 <script>
   const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
   async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
@@ -2211,6 +2212,7 @@ app.get("/checkout-smart/:sku", (req, res) => {
 <div class="btnrow"><div id="apay-btn"></div></div>
 <div class="btnrow"><div id="gpay-btn"></div></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
+<div id="sdk-url" style="margin-top:6px;color:#888;font-size:12px"></div>
 
 <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=CAPTURE&enable-funding=paypal,card"></script>
 <script>
@@ -2344,4 +2346,17 @@ app.get("/pp-lite/:sku?", (req, res) => {
   })();
 </script>
 </body></html>`);
+});
+
+
+// Show the exact SDK URLs that pages will use
+app.get("/__pp-sdk-url", (req, res) => {
+  const liteUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons&intent=CAPTURE&enable-funding=paypal,card`;
+  const advUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&commit=true`;
+  res.type("html").send(`
+    <pre>lite: ${liteUrl}</pre>
+    <pre>advanced: ${advUrl}</pre>
+    <p><a href="${liteUrl}" target="_blank" rel="noreferrer noopener">Open lite SDK URL</a></p>
+    <p><a href="${advUrl}" target="_blank" rel="noreferrer noopener">Open advanced SDK URL</a></p>
+  `);
 });
