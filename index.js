@@ -2117,9 +2117,9 @@ app.get("/checkout/:sku", async (req, res) => {
   async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
   async function capture(id){ const r=await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"cap"); return j; }
 
-  paypal.Buttons({ createOrder, onApprove: ({orderID}) => capture(orderID).then(()=>{
+  Promise.resolve().then(async () => {  const waitForSDK = () => new Promise(r => { if (window.paypal) return r(); const id = setInterval(() => { if (window.paypal) { clearInterval(id); r(); } }, 50); });  await waitForSDK();  const $msg = document.getElementById("msg");  $msg && ($msg.textContent = "PayPal SDK geladen. Initialisiere Buttons…");  return paypal.Buttons({ createOrder, onApprove: ({orderID}) => capture(orderID).then(()=>{
     window.location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
-  })}).render("#paypal-buttons");
+  })}).render("#paypal-buttons");}).catch(err => { const $msg = document.getElementById("msg"); if ($msg) $msg.textContent = "Fehler beim Initialisieren: " + err; });
 
   if (paypal.HostedFields && paypal.HostedFields.isEligible()) {
     paypal.HostedFields.render({
@@ -2140,7 +2140,7 @@ app.get("/checkout/:sku", async (req, res) => {
   } else {
     document.getElementById("card-form").style.display = "none";
   }
-</script>
+window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="JS-Fehler: "+e.message; });</script>
 </body></html>`);
   } catch (e) {
     console.error("checkout error", e);
@@ -2173,7 +2173,7 @@ app.get("/pp-test/:sku?", (req, res) => {
     createOrder, onApprove: ({orderID}) => capture(orderID),
     onError: (e)=>{ document.getElementById("msg").textContent="Fehler: "+(e&&e.message||e); }
   }).render("#paypal-buttons");
-</script>
+window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="JS-Fehler: "+e.message; });</script>
 </body></html>`);
 });
 // ==== END DIAGNOSTIC ====
@@ -2274,7 +2274,7 @@ app.get("/checkout-smart/:sku", (req, res) => {
       });
     }
   }catch(e){ dbg("GP error: " + e); }
-</script>
+window.addEventListener("error", function(e){ var m=document.getElementById("msg"); if(m) m.textContent="JS-Fehler: "+e.message; });</script>
 </body></html>`);
 });
 // ==== END CHECKOUT SMART ====
@@ -2296,3 +2296,23 @@ app.get("/checkout-smart/:sku", (req, res) => {
     console.log("🚀 Server läuft und hört auf PORT", PORT, "—", "2025-08-10T19:21:18.010409Z");
   });
 }
+
+// === Diagnostics ===
+app.get("/__pp-diag", async (req, res) => {
+  try {
+    const info = {};
+    info.env = process.env.PAYPAL_ENVIRONMENT || "live";
+    info.clientId_present = !!PAYPAL_CLIENT_ID;
+    info.clientId_prefix = PAYPAL_CLIENT_ID ? PAYPAL_CLIENT_ID.slice(0,10) : null;
+    info.domain = RAILWAY_DOMAIN;
+    // Try client token
+    let ct = null, ctErr = null;
+    try { ct = await generateClientToken(); } catch (e) { ctErr = String(e); }
+    info.client_token_len = ct ? ct.length : 0;
+    info.client_token_prefix = ct ? ct.slice(0,8) : null;
+    info.client_token_error = ctErr;
+    res.status(200).json(info);
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
