@@ -2052,6 +2052,7 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 
 
+
 // ==== CHECKOUT PAGE (Advanced/On-Site) ====
 app.get("/checkout/:sku", (req, res) => {
   const { sku } = req.params;
@@ -2069,22 +2070,32 @@ app.get("/checkout/:sku", (req, res) => {
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
   .row{margin:16px 0}
   .field{border:1px solid #ddd;border-radius:8px;padding:12px}
-  .methods{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-  #paypal-buttons{min-height:48px;min-width:260px}
+  .methods{margin-bottom:12px}
+  .method-block{margin:12px 0}
+  #paypal-buttons{min-height:48px;min-width:280px;margin-top:8px}
   .hidden{display:none}
   #payBtn,#paypal-fallback{padding:12px 16px;border:0;border-radius:8px;cursor:pointer}
+  #dbg{font-size:12px;color:#888;white-space:pre-line;margin-bottom:8px}
 </style>
 </head>
 <body>
+<div id="dbg"></div>
 <h2>Zahlung</h2>
 
 <div class="methods">
-  <div id="paypal-buttons"></div>
-  <button id="paypal-fallback" class="hidden">Mit PayPal zahlen (Fallback)</button>
-  <div id="apple-pay" class="hidden">
+  <div class="method-block">
+    <strong>PayPal</strong>
+    <div id="paypal-buttons"></div>
+    <button id="paypal-fallback">Mit PayPal zahlen (Fallback)</button>
+  </div>
+
+  <div class="method-block hidden" id="apple-pay">
+    <strong>Apple&nbsp;Pay</strong><br/>
     <button id="apple-pay-button"> Pay</button>
   </div>
-  <div id="google-pay" class="hidden">
+
+  <div class="method-block hidden" id="google-pay">
+    <strong>Google&nbsp;Pay</strong>
     <div id="google-pay-button"></div>
   </div>
 </div>
@@ -2105,6 +2116,10 @@ app.get("/checkout/:sku", (req, res) => {
 <script>
   const SKU = ${"${JSON.stringify(sku)}"};
   const TID = ${"${JSON.stringify(tid)}"};
+  const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\n"; }catch(e){} };
+
+  dbg("clientId present: " + ${"JSON.stringify(!!clientId)"});
+  dbg("SDK loaded? " + (typeof paypal !== "undefined"));
 
   async function createOrder() {
     const r = await fetch("/api/paypal/order", {
@@ -2121,63 +2136,74 @@ app.get("/checkout/:sku", (req, res) => {
     document.getElementById("msg").textContent = "Zahlung erfolgreich ✅";
   }
 
-  // PayPal Wallet Buttons (mit Fallback)
+  // PayPal Buttons mit robustem Fallback
   (function(){
-    const fallbackBtn = document.getElementById("paypal-fallback");
+    const fb = document.getElementById("paypal-fallback");
     try{
-      paypal.Buttons({
-        createOrder,
-        onApprove: ({ orderID }) => capture(orderID),
-        onError: (err) => {
-          console.error("PayPal Buttons error:", err);
-          fallbackBtn.classList.remove("hidden");
-        }
-      }).render("#paypal-buttons").catch(err => {
-        console.error("Buttons render error:", err);
-        fallbackBtn.classList.remove("hidden");
-      });
+      if (typeof paypal !== "undefined" && paypal.Buttons) {
+        dbg("Buttons available: true");
+        paypal.Buttons({
+          createOrder,
+          onApprove: ({ orderID }) => capture(orderID),
+          onError: (err) => { dbg("Buttons error: " + (err && err.message)); fb.classList.remove("hidden"); }
+        }).render("#paypal-buttons").then(()=>{
+          dbg("Buttons rendered");
+          fb.classList.add("hidden");
+        }).catch(err => { dbg("Buttons render catch: " + err); fb.classList.remove("hidden"); });
+      } else {
+        dbg("Buttons not available");
+        fb.classList.remove("hidden");
+      }
     }catch(e){
-      console.error("Buttons init error:", e);
-      fallbackBtn.classList.remove("hidden");
+      dbg("Buttons exception: " + e);
+      fb.classList.remove("hidden");
     }
-    fallbackBtn.onclick = async () => {
+    fb.onclick = async () => {
       try{
         const id = await createOrder();
         window.location.href = "https://www.paypal.com/checkoutnow?token=" + id;
-      }catch(e){ alert("PayPal-Fallback fehlgeschlagen"); console.error(e); }
+      }catch(e){ alert("PayPal-Fallback fehlgeschlagen"); dbg("Fallback error: " + e); }
     };
   })();
 
   // Hosted Fields (Karte)
-  if (paypal.HostedFields.isEligible()) {
-    paypal.HostedFields.render({
-      createOrder,
-      fields:{
-        number:{ selector:"#card-number", placeholder:"Kartennummer" },
-        expirationDate:{ selector:"#card-expiration", placeholder:"MM/YY" },
-        cvv:{ selector:"#card-cvv", placeholder:"CVV" }
+  (function(){
+    try{
+      if (paypal.HostedFields && paypal.HostedFields.isEligible()) {
+        dbg("HostedFields eligible: true");
+        paypal.HostedFields.render({
+          createOrder,
+          fields:{
+            number:{ selector:"#card-number", placeholder:"Kartennummer" },
+            expirationDate:{ selector:"#card-expiration", placeholder:"MM/YY" },
+            cvv:{ selector:"#card-cvv", placeholder:"CVV" }
+          }
+        }).then(hf=>{
+          document.getElementById("payBtn").onclick = async ()=>{
+            try{
+              const { orderId } = await hf.submit({});
+              await capture(orderId);
+            }catch(e){
+              document.getElementById("msg").textContent = "Kartenzahlung fehlgeschlagen";
+              dbg("HostedFields submit error: " + e);
+            }
+          };
+        });
+      } else {
+        dbg("HostedFields eligible: false");
+        document.querySelector("h3").classList.add("hidden");
+        document.getElementById("payBtn").classList.add("hidden");
       }
-    }).then(hf=>{
-      document.getElementById("payBtn").onclick = async ()=>{
-        try{
-          const { orderId } = await hf.submit({}); // 3-D Secure läuft über SDK
-          await capture(orderId);
-        }catch(e){
-          document.getElementById("msg").textContent = "Kartenzahlung fehlgeschlagen";
-          console.error(e);
-        }
-      };
-    });
-  } else {
-    document.querySelector("h3").classList.add("hidden");
-    document.getElementById("payBtn").classList.add("hidden");
-  }
+    }catch(e){ dbg("HostedFields exception: " + e); }
+  })();
 
   // Apple Pay
   (async ()=>{
     try{
-      const ap = paypal.Applepay();
+      const ap = paypal.Applepay && paypal.Applepay();
+      if (!ap) return;
       const conf = await ap.config();
+      dbg("ApplePay eligible: " + !!conf?.isEligible);
       if(conf.isEligible){
         document.getElementById("apple-pay").classList.remove("hidden");
         document.getElementById("apple-pay-button").onclick = async ()=>{
@@ -2186,27 +2212,31 @@ app.get("/checkout/:sku", (req, res) => {
           await session.begin();
         };
       }
-    }catch{}
+    }catch(e){ dbg("ApplePay error: " + e); }
   })();
 
   // Google Pay
   (async ()=>{
     try{
-      const gp = paypal.Googlepay();
-      if(await gp.isEligible()){
+      const gp = paypal.Googlepay && paypal.Googlepay();
+      if(!gp) return;
+      const eligible = await gp.isEligible();
+      dbg("GooglePay eligible: " + !!eligible);
+      if(eligible){
         document.getElementById("google-pay").classList.remove("hidden");
         const btn = await gp.Buttons({
           createOrder, onApprove: ({ orderID }) => capture(orderID)
         });
         btn.render("#google-pay-button");
       }
-    }catch{}
+    }catch(e){ dbg("GooglePay error: " + e); }
   })();
 </script>
 </body>
 </html>`);
 });
 // ==== END CHECKOUT PAGE ====
+
 
 
 
