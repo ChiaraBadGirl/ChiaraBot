@@ -366,6 +366,14 @@ app.get("/paypal/return", async (req, res) => {
   }
 });
 
+    res.send(`<h1>✅ Zahlung erfolgreich!</h1>
+      <p>${sku} wurde freigeschaltet.</p>
+      <p>Du kannst jetzt zu Telegram zurückkehren.</p>`);
+  } catch (err) {
+    console.error("❌ Fehler in /paypal/return:", err);
+    res.status(500).send("Interner Fehler");
+  }
+});
 
 app.get("/success", async (req, res) => {
   try {
@@ -2111,7 +2119,7 @@ app.get("/checkout/:sku", async (req, res) => {
 </form>
 <div id="msg" class="row" style="color:#555"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=CAPTURE&components=buttons,hosted-fields" data-client-token="${clientToken}"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,payment-fields,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&enable-funding=paypal,card,applepay,googlepay&disable-funding=bancontact,blik,eps,mybank&commit=true" data-client-token="${clientToken}"></script>
 <script>
   const SKU=${JSON.stringify('${sku}')}, TID=${JSON.stringify('${tid}')};
   async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
@@ -2164,7 +2172,7 @@ app.get("/pp-test/:sku?", (req, res) => {
 <h2>PayPal Smart Buttons (Test)</h2>
 <div id="paypal-buttons"></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,payment-fields,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&enable-funding=paypal,card,applepay,googlepay"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   async function createOrder(){ const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); return j.id; }
@@ -2212,7 +2220,7 @@ app.get("/checkout-smart/:sku", (req, res) => {
 <div class="btnrow"><div id="gpay-btn"></div></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,payment-fields,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\\n"; }catch(e){} };
