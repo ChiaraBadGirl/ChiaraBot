@@ -2113,15 +2113,32 @@ app.get("/checkout/:sku", async (req, res) => {
 <div id="msg" class="row" style="color:#555"></div>
 <div id="sdk-url" style="margin-top:6px;color:#888;font-size:12px"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true" data-client-token="${clientToken}" id="pp-sdk" onload="document.getElementById('msg').textContent='SDK geladen';document.getElementById('sdk-url').textContent=this.src;" onerror="document.getElementById('msg').textContent='SDK load error';document.getElementById('sdk-url').textContent=this.src;"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true" crossorigin="anonymous" data-client-token="${clientToken}" id="pp-sdk" onload="document.getElementById('msg').textContent='SDK geladen';document.getElementById('sdk-url').textContent=this.src;" onerror="document.getElementById('msg').textContent='SDK load error';document.getElementById('sdk-url').textContent=this.src;"></script>
 <script>
   const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
   async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
   async function capture(id){ const r=await fetch("/api/paypal/capture",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:id})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"cap"); return j; }
 
-  Promise.resolve().then(async () => {  const waitForSDK = () => new Promise(r => { if (window.paypal) return r(); const id = setInterval(() => { if (window.paypal) { clearInterval(id); r(); } }, 50); });  await waitForSDK();  const $msg = document.getElementById("msg");  $msg && ($msg.textContent = "PayPal SDK geladen. Initialisiere Buttons…");  return paypal.Buttons({ createOrder, onApprove: ({orderID}) => capture(orderID).then(()=>{
-    window.location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
-  })}).render("#paypal-buttons");}).catch(err => { const $msg = document.getElementById("msg"); if ($msg) $msg.textContent = "Fehler beim Initialisieren: " + err; });
+  Promise.resolve().then(async () => {  const waitForSDK = () => new Promise(r => { if (window.paypal) return r(); const id = setInterval(() => { if (window.paypal) { clearInterval(id); r(); } }, 50); });  await waitForSDK();  const $msg = document.getElementById("msg");  $msg && ($msg.textContent = "PayPal SDK geladen. Initialisiere Buttons…");  return const renderStandardButtons = () => paypal.Buttons({
+      createOrder: () => createOrderOnServer(),
+      onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
+        window.location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
+      })
+    }).render("#paypal-buttons");
+
+    const renderCardFallback = () => {
+      const $msg = document.getElementById("msg");
+      $msg && ($msg.textContent = "Hosted Fields nicht verfügbar – zeige Karten-Button als Fallback.");
+      return paypal.Buttons({
+        fundingSource: paypal.FUNDING.CARD,
+        createOrder: () => createOrderOnServer(),
+        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
+          window.location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
+        })
+      }).render("#paypal-card-fallback");
+    };
+
+    renderStandardButtons();}).catch(err => { const $msg = document.getElementById("msg"); if ($msg) $msg.textContent = "Fehler beim Initialisieren: " + err; });
 
   if (paypal.HostedFields && paypal.HostedFields.isEligible()) {
     paypal.HostedFields.render({
