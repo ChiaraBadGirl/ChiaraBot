@@ -2170,6 +2170,81 @@ app.get("/health", (req, res) => {
 app.get("/webhook/paypal", (req, res) => res.send("PayPal Webhook OK"));
 // ===========================================
 
+// ==== PAYPAL ADVANCED CHECKOUT – SERVER APIS ====
+
+// Map SKU -> info
+function getSkuInfo(sku) {
+  try {
+    if (typeof skuConfig === "object" && skuConfig[sku]) {
+      const item = skuConfig[sku];
+      return {
+        amount: String(item.amount || item.price || "1.00"),
+        currency: item.currency || "EUR",
+        description: item.description || item.name || sku,
+      };
+    }
+  } catch (e) {}
+  return { amount: "1.00", currency: "EUR", description: sku };
+}
+
+// Create order (called by browser)
+app.post("/api/paypal/order", express.json(), async (req, res) => {
+  try {
+    const { sku, tid } = req.body || {};
+    if (!sku || !tid) return res.status(400).json({ error: "missing sku/tid" });
+
+    const { amount, currency, description } = getSkuInfo(sku);
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: "CAPTURE",
+      purchase_units: [{
+        description,
+        custom_id: String(tid),
+        invoice_id: `${sku}:${tid}:${Date.now()}`,
+        amount: { currency_code: currency, value: amount },
+      }],
+    });
+
+    const order = await paypalClient().execute(request);
+    res.json({ id: order.result.id });
+  } catch (e) {
+    console.error("create order error:", e);
+    res.status(500).json({ error: "order_failed" });
+  }
+});
+
+// Capture order (called by browser after approval/hostedFields submit)
+app.post("/api/paypal/capture", express.json(), async (req, res) => {
+  try {
+    const { orderId } = req.body || {};
+    if (!orderId) return res.status(400).json({ error: "missing orderId" });
+
+    const capReq = new paypal.orders.OrdersCaptureRequest(orderId);
+    capReq.requestBody({});
+    const cap = await paypalClient().execute(capReq);
+
+    const unit = cap.result?.purchase_units?.[0];
+    const capture = unit?.payments?.captures?.[0];
+    const sku = unit?.invoice_id?.split(":")?.[0];
+    const tid = unit?.custom_id;
+    const amount = capture?.amount?.value;
+    const currency = capture?.amount?.currency_code;
+
+    if (sku && tid) {
+      await fulfillOrder({ telegramId: String(tid), sku, amount, currency });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("capture error:", e);
+    res.status(200).json({ ok: false });
+  }
+});
+// ==== END PAYPAL APIS ====
+
+
+
 
 
 
