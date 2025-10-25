@@ -2180,6 +2180,7 @@ app.get("/checkout/:sku", async (req, res) => {
 
     <div class="card">
       <div class="summary">
+        ${process.env.PAYMENT_IMAGE_URL ? `<img src="${process.env.PAYMENT_IMAGE_URL}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;margin-right:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);" />` : ""}
         <div class="name">${cfg.name}</div>
         <div class="price">${cfg.price} €</div>
       </div>
@@ -2200,6 +2201,11 @@ app.get("/checkout/:sku", async (req, res) => {
           <span>SSL-gesicherte Zahlung</span> ·
           <span>Abgewickelt durch PayPal</span>
         </div>
+      <div style="margin-top:18px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
+        ${process.env.LEGAL_TERMS_URL ? `<a href="${process.env.LEGAL_TERMS_URL}" style="color:inherit;text-decoration:none;opacity:.9">AGB</a>` : ""}
+        ${process.env.LEGAL_PRIVACY_URL ? `<a href="${process.env.LEGAL_PRIVACY_URL}" style="color:inherit;text-decoration:none;opacity:.9">Datenschutz</a>` : ""}
+        ${process.env.LEGAL_IMPRESSUM_URL ? `<a href="${process.env.LEGAL_IMPRESSUM_URL}" style="color:inherit;text-decoration:none;opacity:.9">Impressum</a>` : ""}
+      </div>
       </div>
     </div>
   </div>
