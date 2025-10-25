@@ -2111,7 +2111,7 @@ app.get("/checkout/:sku", async (req, res) => {
 </form>
 <div id="msg" class="row" style="color:#555"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&commit=true" data-client-token="${clientToken}"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=CAPTURE&enable-funding=paypal,card,applepay,googlepay&commit=true" data-client-token="${clientToken}" id="pp-sdk" onload="document.getElementById('msg').textContent='SDK geladen';" onerror="document.getElementById('msg').textContent='SDK load error';"></script>
 <script>
   const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
   async function createOrder(){ const r=await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); if(!r.ok) throw new Error(j.error||"order"); return j.id; }
@@ -2315,4 +2315,33 @@ app.get("/__pp-diag", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
+});
+
+
+// ==== PURE BUTTONS (no client token) ====
+app.get("/pp-lite/:sku?", (req, res) => {
+  const sku = req.params.sku || "TEST_LIVE";
+  const clientId = PAYPAL_CLIENT_ID;
+  res.type("html").send(`<!doctype html>
+<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PP Lite</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}#paypal-buttons{min-height:48px}</style>
+</head><body>
+<h2>PayPal Buttons – Lite</h2>
+<div id="paypal-buttons"></div>
+<div id="msg" style="margin-top:12px;color:#555"></div>
+<script id="pp-sdk" src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=CAPTURE&enable-funding=paypal,card" onload="document.getElementById('msg').textContent='SDK geladen';" onerror="document.getElementById('msg').textContent='SDK load error'"></script>
+<script>
+  (function() {
+    function render() {
+      if (!window.paypal) return setTimeout(render, 50);
+      paypal.Buttons({
+        createOrder: function(){ return fetch('/api/paypal/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sku:'${sku}',tid:'1'})}).then(r=>r.json()).then(j=>j.id); },
+        onApprove: function(data){ return fetch('/api/paypal/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sku:'${sku}',tid:'1',orderId:data.orderID})}).then(r=>r.json()).then(()=>{ document.getElementById('msg').textContent='OK'; }); }
+      }).render('#paypal-buttons');
+    }
+    render();
+  })();
+</script>
+</body></html>`);
 });
