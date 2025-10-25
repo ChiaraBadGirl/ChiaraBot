@@ -2085,128 +2085,145 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 // ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
 app.get("/checkout/:sku", async (req, res) => {
-  try {
-    const sku = req.params.sku;
-    const tid = String(req.query.tid || "");
-    const cfg = skuConfig[sku];
-    if (!cfg || !/^\d+$/.test(tid)) return res.status(400).send("❌ Ungültige Parameter.");
-    const clientToken = await generateClientToken();
-    const clientId = PAYPAL_CLIENT_ID;
+  const sku = req.params.sku;
+  const tid = String(req.query.tid || "").trim();
+  const cfg = skuConfig[sku];
 
-    res.type("html").send(`<!doctype html>
-<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  if (!cfg || !/^\d+$/.test(tid)) {
+    return res.status(400).send("❌ Ungültige Parameter.");
+  }
+
+  // Nur Buttons + Card-Button (kein Hosted Fields)
+  const sdkUrl =
+    "https://www.paypal.com/sdk/js" +
+    `?client-id=${PAYPAL_CLIENT_ID}` +
+    `&currency=EUR` +
+    `&intent=capture` +
+    `&components=buttons` +
+    `&enable-funding=card` +
+    `&commit=true`;
+
+  res.type("html").send(`<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Checkout: ${cfg.name} – ${cfg.price} €</title>
 <style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
-  #paypal-buttons{min-height:48px;margin:16px 0}
-  #card-form{display:none;margin-top:16px}
-  .row{margin:8px 0}
+  :root {
+    --bg1: #0f0b1d; --bg2:#20143a; --card:#121212;
+    --text:#e5e7eb; --muted:#9aa3af; --line: rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; color:var(--text);
+    background:
+      radial-gradient(1100px 700px at 12% -15%, #2a174f 0%, transparent 60%),
+      radial-gradient(900px 600px at 110% 120%, #441e83 0%, transparent 60%),
+      linear-gradient(160deg, var(--bg1), var(--bg2));
+    font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .wrap{ width:100%; max-width:560px }
+  .brand{ display:flex; align-items:center; gap:12px; margin-bottom:16px }
+  .badge{ width:42px; height:42px; border-radius:14px;
+          background:radial-gradient(120% 120% at 20% 20%, #7c3aed, #312e81); }
+  .brand h1{ margin:0; font-weight:800; font-size:22px }
+  .card{
+    background: rgba(0,0,0,.60); border:1px solid var(--line);
+    border-radius:18px; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:12px }
+  .title{ font-weight:700; font-size:20px }
+  .price{ font-weight:800; font-size:20px }
+  .hint{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; margin-top:8px }
+  .dot{ width:4px; height:4px; background:var(--muted); border-radius:50% }
+  .pp{ margin-top:18px }
+  .pp > *{ margin-top:12px }
+  .err{ margin-top:12px; color:#fecaca; font-size:14px; display:none }
+  .legal{ margin-top:14px; color:var(--muted); font-size:12px; text-align:center }
+  /* Containerhöhen, damit nix springt */
+  #pp-pal, #pp-card { min-height: 45px; }
 </style>
-</head><body>
-  <h1>Checkout: ${cfg.name} – ${cfg.price} €</h1>
-  
-  
+<script src="${sdkUrl}"></script>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">
+      <div class="badge"></div>
+      <h1>${process.env.PAYPAL_BRAND || process.env.PAYMENT_BRAND || "Checkout"}</h1>
+    </div>
 
-  <div id="paypal-buttons"></div>
-  <div id="paypal-card-fallback" style="margin-top:12px"></div>
-  <div id="paypal-card-fallback"></div>
+    <section class="card">
+      <div class="row">
+        <div class="title">${cfg.name}</div>
+        <div class="price">${cfg.price} €</div>
+      </div>
 
-  <form id="card-form">
-    <div class="row" id="card-number"></div>
-    <div class="row" id="card-expiration"></div>
-    <div class="row" id="card-cvv"></div>
-    <button id="card-pay" type="submit">Mit Karte bezahlen</button>
-  </form>
+      <div class="hint">🔒 SSL-gesicherte Zahlung <span class="dot"></span> Abgewickelt durch PayPal</div>
 
-  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="" onerror=""></script>
-  <script>
-  const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
-  function setMsg(m){}
+      <div class="pp">
+        <div id="pp-pal"></div>
+        <div id="pp-card"></div>
+        <div id="pp-err" class="err">Fehler beim Starten der Zahlung. Bitte später erneut versuchen.</div>
+      </div>
 
-  async function waitForSDK(){
-    if (window.paypal && window.paypal.Buttons) return;
-    await new Promise(resolve => {
-      const i = setInterval(() => {
-        if (window.paypal && window.paypal.Buttons) { clearInterval(i); resolve(); }
-      }, 30);
-      setTimeout(() => { clearInterval(i); resolve(); }, 8000);
+      <div class="legal">Einmalige Zahlung – kein Abo.</div>
+    </section>
+  </main>
+
+<script>
+(function() {
+  const sku = ${JSON.stringify(sku)};
+  const tid = ${JSON.stringify(tid)};
+  const price = ${JSON.stringify(cfg.price)};
+
+  const order = {
+    intent: "CAPTURE",
+    purchase_units: [{
+      reference_id: sku,
+      custom_id: tid,
+      amount: { currency_code: "EUR", value: price }
+    }]
+  };
+
+  function onApprove(_data, actions) {
+    return actions.order.capture().then(function() {
+      window.location.href =
+        "/success?telegramId=" + encodeURIComponent(tid) +
+        "&productName=" + encodeURIComponent(sku) +
+        "&price=" + encodeURIComponent(price);
     });
   }
 
-  async function initCheckout(){
-    try { await waitForSDK(); } catch(e){}
-    if (!window.paypal) { setMsg("SDK nicht verfügbar"); return; }
-
-    async function createOrderOnServer() {
-      const r = await fetch("/api/paypal/order", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error||"create order failed"); return j.id;
-    }
-    async function captureOnServer(orderId) {
-      const r = await fetch("/api/paypal/capture", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID, orderId }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
-    }
-
-    try {
-      paypal.Buttons({
-        createOrder: () => createOrderOnServer(),
-        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
-          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
-        })
-      }).render("#paypal-buttons").catch(err => setMsg(""+err));
-    } catch(e){ setMsg(""+e); }
-
-    try {
-      var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
-      setMsg("SDK geladen – " + eligible);
-      const renderCardFallback = () => paypal.Buttons({
-        fundingSource: paypal.FUNDING.CARD,
-        createOrder: () => createOrderOnServer(),
-        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
-          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
-        })
-      }).render("#paypal-card-fallback");
-      if (eligible) {
-        paypal.HostedFields.render({
-          createOrder: () => createOrderOnServer(),
-          fields: {
-            number:     { selector: "#card-number", placeholder: "Kartennummer" },
-            expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
-            cvv:        { selector: "#card-cvv", placeholder: "CVV" }
-          }
-        }).then(hf => {
-          document.getElementById("card-form").style.display = "";
-          document.getElementById("card-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            try {
-              const result = await hf.submit({ contingencies: ["3D_SECURE"] });
-              const orderId = (result && (result.orderId || result.orderID)) || null;
-              if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
-              await captureOnServer(orderId);
-              location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
-            } catch (err) {
-              setMsg("" + (err && err.message || err));
-            }
-          });
-        }).catch(err => {
-          setMsg("Die Karteneingabe ist vorübergehend nicht verfügbar – zeige Karten‑Button. Details: " + (err && err.message || err) + " – zeige Karten-Button.");
-          renderCardFallback();
-        });
-      }
-      else {
-        /* Hosted Fields ineligible – simply show card button fallback without message */
-        renderCardFallback();
-      }
-    } catch(e){ setMsg(""+e); }
+  function onError(err) {
+    console.error("PayPal error:", err);
+    const e = document.getElementById("pp-err");
+    e.style.display = "block";
   }
 
-  initCheckout();
-  window.addEventListener("error", e => setMsg(""+e.message));
+  try {
+    const wallet = paypal.Buttons({
+      style: { layout: "vertical", color: "gold", shape: "rect", label: "paypal", tagline: false },
+      createOrder: (_d, actions) => actions.order.create(order),
+      onApprove, onError
+    });
+    if (wallet.isEligible()) wallet.render("#pp-pal");
+  } catch (e) { onError(e); }
+
+  try {
+    const card = paypal.Buttons({
+      fundingSource: paypal.FUNDING.CARD,
+      style: { layout: "vertical", color: "black", shape: "rect", label: "pay", tagline: false },
+      createOrder: (_d, actions) => actions.order.create(order),
+      onApprove, onError
+    });
+    if (card.isEligible()) card.render("#pp-card");
+  } catch (e) { onError(e); }
+})();
 </script>
-</body></html>`);
-  } catch (e) {
-    console.error("checkout page error:", e);
-    res.status(500).send("Interner Fehler (Checkout)");
-  }
+</body>
+</html>`);
 });
 // ==== END CHECKOUT PAGE ====
 
