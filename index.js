@@ -2152,6 +2152,26 @@ app.post(
 // 🚫 Legacy-Alias neutralisieren – tut nichts mehr
 app.all("/paypal/webhook", (req, res) => res.sendStatus(204));
 
+// ====== Basic Health & Root endpoints ======
+app.get("/", (req, res) => {
+  res.send("ChiaraBot up ✅");
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    env: process.env.NODE_ENV || "production",
+    domain: process.env.RAILWAY_DOMAIN || "chiarabot-production.up.railway.app",
+    time: new Date().toISOString(),
+  });
+});
+
+// simple webhook health for quick check
+app.get("/webhook/paypal", (req, res) => res.send("PayPal Webhook OK"));
+// ===========================================
+
+
+
 
   app.listen(PORT, () => {
     globalThis.__LISTENING__ = true;
