@@ -2179,12 +2179,6 @@ app.get("/checkout/:sku", async (req, res) => {
     res.status(500).send("Interner Fehler (Checkout)");
   }
 });
-  } catch (e) {
-    console.error("checkout error", e);
-    res.status(500).send("Interner Fehler (Checkout)");
-  }
-});
-
 // ==== END CHECKOUT PAGE ====
 
 // ==== DIAGNOSTIC: PURE SMART BUTTONS (PayPal + Card) ====
