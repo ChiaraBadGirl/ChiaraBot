@@ -366,14 +366,6 @@ app.get("/paypal/return", async (req, res) => {
   }
 });
 
-    res.send(`<h1>✅ Zahlung erfolgreich!</h1>
-      <p>${sku} wurde freigeschaltet.</p>
-      <p>Du kannst jetzt zu Telegram zurückkehren.</p>`);
-  } catch (err) {
-    console.error("❌ Fehler in /paypal/return:", err);
-    res.status(500).send("Interner Fehler");
-  }
-});
 
 app.get("/success", async (req, res) => {
   try {
