@@ -748,7 +748,7 @@ bot.action('fullaccess_1m', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_fullaccess_1m' }],
           [{ text: '💰 Preis', callback_data: 'preis_fullaccess_1m' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_fullaccess_1m' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('FULL_ACCESS', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_fullaccess' }]
         ]
       }
@@ -830,7 +830,7 @@ bot.action('videos_5', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_videos_5' }],
         [{ text: '💰 Preis', callback_data: 'preis_videos_5' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos_5' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_5', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
       ]
     }
@@ -876,7 +876,7 @@ bot.action('videos_10', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_videos_10' }],
         [{ text: '💰 Preis', callback_data: 'preis_videos_10' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos_10' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_10', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
       ]
     }
@@ -922,7 +922,7 @@ bot.action('videos_15', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_videos_15' }],
         [{ text: '💰 Preis', callback_data: 'preis_videos_15' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos_15' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_15', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
       ]
     }
@@ -1021,7 +1021,7 @@ bot.action('preise_daddy_bronze', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_daddy_bronze' }],
           [{ text: '💰 Preis', callback_data: 'preis_daddy_bronze' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy_bronze' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_BRONZE', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
         ]
       }
@@ -1070,7 +1070,7 @@ bot.action('preise_daddy_silber', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_daddy_silber' }],
           [{ text: '💰 Preis', callback_data: 'preis_daddy_silber' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy_silber' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_SILBER', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
         ]
       }
@@ -1119,7 +1119,7 @@ bot.action('preise_daddy_gold', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_daddy_gold' }],
           [{ text: '💰 Preis', callback_data: 'preis_daddy_gold' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy_gold' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_GOLD', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
         ]
       }
@@ -1180,7 +1180,7 @@ bot.action('preise_girlfriend', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_girlfriend' }],
         [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('GF_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
       ]
     }
@@ -1243,7 +1243,7 @@ bot.action('preise_domina', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ Info', callback_data: 'info_domina' }],
         [{ text: '💰 Preis', callback_data: 'preis_domina' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_domina' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('DOMINA_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
       ]
     }
@@ -1385,7 +1385,7 @@ bot.action('custom_3', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'custom3_info' }],
         [{ text: '💰 Preis', callback_data: 'custom3_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom3' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM3_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
@@ -1431,7 +1431,7 @@ bot.action('custom_5', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'custom5_info' }],
         [{ text: '💰 Preis', callback_data: 'custom5_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom5' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM5_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
@@ -1495,7 +1495,7 @@ bot.action('panty_item', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'panty_info' }],
         [{ text: '💰 Preis', callback_data: 'panty_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_panty' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('PANTY_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
@@ -1541,7 +1541,7 @@ bot.action('socks_item', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'socks_info' }],
         [{ text: '💰 Preis', callback_data: 'socks_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_socks' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('SOCKS_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
@@ -2085,159 +2085,128 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 // ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
 app.get("/checkout/:sku", async (req, res) => {
-  const sku = req.params.sku;
-  const tid = String(req.query.tid || "").trim();
-  const cfg = skuConfig[sku];
+  try {
+    const sku = req.params.sku;
+    const tid = String(req.query.tid || "");
+    const cfg = skuConfig[sku];
+    if (!cfg || !/^\d+$/.test(tid)) return res.status(400).send("❌ Ungültige Parameter.");
+    const clientToken = await generateClientToken();
+    const clientId = PAYPAL_CLIENT_ID;
 
-  if (!cfg || !/^\d+$/.test(tid)) {
-    return res.status(400).send("❌ Ungültige Parameter.");
-  }
-
-  // Buttons: PayPal + SEPA + Card (kein Hosted Fields, keine Duplikate)
-  const sdkUrl =
-    "https://www.paypal.com/sdk/js" +
-    `?client-id=${PAYPAL_CLIENT_ID}` +
-    `&currency=EUR` +
-    `&intent=capture` +
-    `&components=buttons` +
-    `&enable-funding=card,sepa` +   // SEPA bleibt sichtbar
-    `&commit=true`;
-
-  res.type("html").send(`<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+    res.type("html").send(`<!doctype html>
+<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Checkout: ${cfg.name} – ${cfg.price} €</title>
 <style>
-  :root {
-    --bg1: #0f0b1d; --bg2:#20143a; --card:#121212;
-    --text:#e5e7eb; --muted:#9aa3af; --line: rgba(255,255,255,.08);
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; min-height:100vh; color:var(--text);
-    background:
-      radial-gradient(1100px 700px at 12% -15%, #2a174f 0%, transparent 60%),
-      radial-gradient(900px 600px at 110% 120%, #441e83 0%, transparent 60%),
-      linear-gradient(160deg, var(--bg1), var(--bg2));
-    font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;
-    display:flex; align-items:center; justify-content:center; padding:24px;
-  }
-  .wrap{ width:100%; max-width:560px }
-  .brand{ display:flex; align-items:center; gap:12px; margin-bottom:16px }
-  .badge{ width:42px; height:42px; border-radius:14px;
-          background:radial-gradient(120% 120% at 20% 20%, #7c3aed, #312e81); }
-  .brand h1{ margin:0; font-weight:800; font-size:22px }
-  .card{
-    background: rgba(0,0,0,.60); border:1px solid var(--line);
-    border-radius:18px; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,.35);
-  }
-  .row{ display:flex; align-items:center; justify-content:space-between; gap:12px }
-  .title{ font-weight:700; font-size:20px }
-  .price{ font-weight:800; font-size:20px }
-  .hint{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; margin-top:14px; justify-content:center; text-align:center; }
-  .dot{ width:4px; height:4px; background:var(--muted); border-radius:50% }
-  .pp{ margin-top:18px }
-  .pp > *{ margin-top:12px }
-  .err{ margin-top:12px; color:#fecaca; font-size:14px; display:none }
-  .legal{ margin-top:14px; color:var(--muted); font-size:12px; text-align:center }
-  /* Containerhöhen, damit nix springt */
-  #pp-pal, #pp-sepa, #pp-card { min-height: 45px; }
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
+  #paypal-buttons{min-height:48px;margin:16px 0}
+  #card-form{display:none;margin-top:16px}
+  .row{margin:8px 0}
 </style>
-<script src="${sdkUrl}"></script>
-</head>
-<body>
-  <main class="wrap">
-    <div class="brand">
-      <div class="badge"></div>
-      <h1>${process.env.PAYPAL_BRAND || process.env.PAYMENT_BRAND || "Checkout"}</h1>
-    </div>
+</head><body>
+  <h1>Checkout: ${cfg.name} – ${cfg.price} €</h1>
+  
+  
 
-    <section class="card">
-      <div class="row">
-        <div class="title">${cfg.name}</div>
-        <div class="price">${cfg.price} €</div>
-      </div>
+  <div id="paypal-buttons"></div>
+  <div id="paypal-card-fallback" style="margin-top:12px"></div>
+  <div id="paypal-card-fallback"></div>
 
-      <div class="pp">
-        <div id="pp-pal"></div>
-        <div id="pp-sepa"></div>
-        <div id="pp-card"></div>
-        <div id="pp-err" class="err">Fehler beim Starten der Zahlung. Bitte später erneut versuchen.</div>
-      </div>
+  <form id="card-form">
+    <div class="row" id="card-number"></div>
+    <div class="row" id="card-expiration"></div>
+    <div class="row" id="card-cvv"></div>
+    <button id="card-pay" type="submit">Mit Karte bezahlen</button>
+  </form>
 
-      <div class="hint">🔒 SSL-gesicherte Zahlung <span class="dot"></span> Abgewickelt durch PayPal</div>
-      <div class="legal">Einmalige Zahlung – kein Abo.</div>
-    </section>
-  </main>
+  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="" onerror=""></script>
+  <script>
+  const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
+  function setMsg(m){}
 
-<script>
-(function() {
-  const sku = ${JSON.stringify(sku)};
-  const tid = ${JSON.stringify(tid)};
-  const price = ${JSON.stringify(cfg.price)};
-
-  const order = {
-    intent: "CAPTURE",
-    purchase_units: [{
-      reference_id: sku,
-      custom_id: tid,
-      amount: { currency_code: "EUR", value: price }
-    }]
-  };
-
-  function onApprove(_data, actions) {
-    return actions.order.capture().then(function() {
-      window.location.href =
-        "/success?telegramId=" + encodeURIComponent(tid) +
-        "&productName=" + encodeURIComponent(sku) +
-        "&price=" + encodeURIComponent(price);
+  async function waitForSDK(){
+    if (window.paypal && window.paypal.Buttons) return;
+    await new Promise(resolve => {
+      const i = setInterval(() => {
+        if (window.paypal && window.paypal.Buttons) { clearInterval(i); resolve(); }
+      }, 30);
+      setTimeout(() => { clearInterval(i); resolve(); }, 8000);
     });
   }
 
-  function onError(err) {
-    console.error("PayPal error:", err);
-    const e = document.getElementById("pp-err");
-    e.style.display = "block";
+  async function initCheckout(){
+    try { await waitForSDK(); } catch(e){}
+    if (!window.paypal) { setMsg("SDK nicht verfügbar"); return; }
+
+    async function createOrderOnServer() {
+      const r = await fetch("/api/paypal/order", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID }) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error||"create order failed"); return j.id;
+    }
+    async function captureOnServer(orderId) {
+      const r = await fetch("/api/paypal/capture", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID, orderId }) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
+    }
+
+    try {
+      paypal.Buttons({
+        createOrder: () => createOrderOnServer(),
+        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
+          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
+        })
+      }).render("#paypal-buttons").catch(err => setMsg(""+err));
+    } catch(e){ setMsg(""+e); }
+
+    try {
+      var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
+      setMsg("SDK geladen – " + eligible);
+      const renderCardFallback = () => paypal.Buttons({
+        fundingSource: paypal.FUNDING.CARD,
+        createOrder: () => createOrderOnServer(),
+        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
+          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
+        })
+      }).render("#paypal-card-fallback");
+      if (eligible) {
+        paypal.HostedFields.render({
+          createOrder: () => createOrderOnServer(),
+          fields: {
+            number:     { selector: "#card-number", placeholder: "Kartennummer" },
+            expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
+            cvv:        { selector: "#card-cvv", placeholder: "CVV" }
+          }
+        }).then(hf => {
+          document.getElementById("card-form").style.display = "";
+          document.getElementById("card-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            try {
+              const result = await hf.submit({ contingencies: ["3D_SECURE"] });
+              const orderId = (result && (result.orderId || result.orderID)) || null;
+              if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
+              await captureOnServer(orderId);
+              location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
+            } catch (err) {
+              setMsg("" + (err && err.message || err));
+            }
+          });
+        }).catch(err => {
+          setMsg("Die Karteneingabe ist vorübergehend nicht verfügbar – zeige Karten‑Button. Details: " + (err && err.message || err) + " – zeige Karten-Button.");
+          renderCardFallback();
+        });
+      }
+      else {
+        /* Hosted Fields ineligible – simply show card button fallback without message */
+        renderCardFallback();
+      }
+    } catch(e){ setMsg(""+e); }
   }
 
-  // Nur PayPal im ersten Block, damit keine Karte dort erscheint
-  try {
-    const wallet = paypal.Buttons({
-      fundingSource: paypal.FUNDING.PAYPAL,
-      style: { layout: "vertical", color: "gold", shape: "rect", label: "paypal", tagline: false },
-      createOrder: (_d, a) => a.order.create(order),
-      onApprove, onError
-    });
-    if (wallet.isEligible()) wallet.render("#pp-pal");
-  } catch (e) { onError(e); }
-
-  // SEPA separat (wenn verfügbar)
-  try {
-    const sepa = paypal.Buttons({
-      fundingSource: paypal.FUNDING.SEPA,
-      style: { layout: "vertical", shape: "rect", tagline: false },
-      createOrder: (_d, a) => a.order.create(order),
-      onApprove, onError
-    });
-    if (sepa.isEligible()) sepa.render("#pp-sepa");
-  } catch (e) { /* ignore */ }
-
-  // Karten-Button separat (einmal)
-  try {
-    const card = paypal.Buttons({
-      fundingSource: paypal.FUNDING.CARD,
-      style: { layout: "vertical", color: "black", shape: "rect", label: "pay", tagline: false },
-      createOrder: (_d, a) => a.order.create(order),
-      onApprove, onError
-    });
-    if (card.isEligible()) card.render("#pp-card");
-  } catch (e) { onError(e); }
-})();
+  initCheckout();
+  window.addEventListener("error", e => setMsg(""+e.message));
 </script>
-</body>
-</html>`);
+</body></html>`);
+  } catch (e) {
+    console.error("checkout page error:", e);
+    res.status(500).send("Interner Fehler (Checkout)");
+  }
 });
 // ==== END CHECKOUT PAGE ====
 
