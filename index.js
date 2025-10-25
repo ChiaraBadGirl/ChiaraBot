@@ -2093,14 +2093,14 @@ app.get("/checkout/:sku", async (req, res) => {
     return res.status(400).send("❌ Ungültige Parameter.");
   }
 
-  // Nur Buttons + Card-Button (kein Hosted Fields)
+  // Buttons: PayPal + SEPA + Card (kein Hosted Fields, keine Duplikate)
   const sdkUrl =
     "https://www.paypal.com/sdk/js" +
     `?client-id=${PAYPAL_CLIENT_ID}` +
     `&currency=EUR` +
     `&intent=capture` +
     `&components=buttons` +
-    `&enable-funding=card` +
+    `&enable-funding=card,sepa` +   // SEPA bleibt sichtbar
     `&commit=true`;
 
   res.type("html").send(`<!doctype html>
@@ -2136,14 +2136,14 @@ app.get("/checkout/:sku", async (req, res) => {
   .row{ display:flex; align-items:center; justify-content:space-between; gap:12px }
   .title{ font-weight:700; font-size:20px }
   .price{ font-weight:800; font-size:20px }
-  .hint{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; margin-top:8px }
+  .hint{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; margin-top:14px; justify-content:center; text-align:center; }
   .dot{ width:4px; height:4px; background:var(--muted); border-radius:50% }
   .pp{ margin-top:18px }
   .pp > *{ margin-top:12px }
   .err{ margin-top:12px; color:#fecaca; font-size:14px; display:none }
   .legal{ margin-top:14px; color:var(--muted); font-size:12px; text-align:center }
   /* Containerhöhen, damit nix springt */
-  #pp-pal, #pp-card { min-height: 45px; }
+  #pp-pal, #pp-sepa, #pp-card { min-height: 45px; }
 </style>
 <script src="${sdkUrl}"></script>
 </head>
@@ -2160,14 +2160,14 @@ app.get("/checkout/:sku", async (req, res) => {
         <div class="price">${cfg.price} €</div>
       </div>
 
-      <div class="hint">🔒 SSL-gesicherte Zahlung <span class="dot"></span> Abgewickelt durch PayPal</div>
-
       <div class="pp">
         <div id="pp-pal"></div>
+        <div id="pp-sepa"></div>
         <div id="pp-card"></div>
         <div id="pp-err" class="err">Fehler beim Starten der Zahlung. Bitte später erneut versuchen.</div>
       </div>
 
+      <div class="hint">🔒 SSL-gesicherte Zahlung <span class="dot"></span> Abgewickelt durch PayPal</div>
       <div class="legal">Einmalige Zahlung – kein Abo.</div>
     </section>
   </main>
@@ -2202,20 +2202,34 @@ app.get("/checkout/:sku", async (req, res) => {
     e.style.display = "block";
   }
 
+  // Nur PayPal im ersten Block, damit keine Karte dort erscheint
   try {
     const wallet = paypal.Buttons({
+      fundingSource: paypal.FUNDING.PAYPAL,
       style: { layout: "vertical", color: "gold", shape: "rect", label: "paypal", tagline: false },
-      createOrder: (_d, actions) => actions.order.create(order),
+      createOrder: (_d, a) => a.order.create(order),
       onApprove, onError
     });
     if (wallet.isEligible()) wallet.render("#pp-pal");
   } catch (e) { onError(e); }
 
+  // SEPA separat (wenn verfügbar)
+  try {
+    const sepa = paypal.Buttons({
+      fundingSource: paypal.FUNDING.SEPA,
+      style: { layout: "vertical", shape: "rect", tagline: false },
+      createOrder: (_d, a) => a.order.create(order),
+      onApprove, onError
+    });
+    if (sepa.isEligible()) sepa.render("#pp-sepa");
+  } catch (e) { /* ignore */ }
+
+  // Karten-Button separat (einmal)
   try {
     const card = paypal.Buttons({
       fundingSource: paypal.FUNDING.CARD,
       style: { layout: "vertical", color: "black", shape: "rect", label: "pay", tagline: false },
-      createOrder: (_d, actions) => actions.order.create(order),
+      createOrder: (_d, a) => a.order.create(order),
       onApprove, onError
     });
     if (card.isEligible()) card.render("#pp-card");
