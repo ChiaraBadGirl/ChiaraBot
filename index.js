@@ -225,29 +225,53 @@ function __sameMarkup(a, b) {
 async function safeEdit(ctx, newText, optsOrMarkup) {
   try {
     const msg = ctx.update?.callback_query?.message || {};
-    const oldText = msg.text || msg.caption || "";
-    const oldMarkup = msg.reply_markup;
-    const newMarkup = optsOrMarkup?.reply_markup ?? optsOrMarkup;
+    const chatId = msg?.chat?.id;
+    const messageId = msg?.message_id;
+    const oldText = msg?.text || msg?.caption || "";
+    const oldMarkup = msg?.reply_markup;
+    const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
 
-    if (oldText === newText && __sameMarkup(oldMarkup, newMarkup)) {
-      // nothing to change; just clear spinner
+    // simple deep-compare of inline_keyboard arrays
+    const same = (a, b) => {
+      try {
+        const A = (a && (a.inline_keyboard || a)) || null;
+        const B = (b && (b.inline_keyboard || b)) || null;
+        return JSON.stringify(A) === JSON.stringify(B);
+      } catch { return false; }
+    };
+
+    if (oldText === newText && same(oldMarkup, desiredMarkup)) {
       await ctx.answerCbQuery().catch(() => {});
       return;
     }
 
     const base = { parse_mode: "Markdown" };
-    const opts = (newMarkup || optsOrMarkup)
-      ? { ...base, ...(optsOrMarkup?.reply_markup ? optsOrMarkup : {}), ...(newMarkup ? { reply_markup: newMarkup } : {}) }
-      : base;
+    const opts = desiredMarkup ? { ...base, reply_markup: desiredMarkup } : base;
 
-    await safeEdit(ctx, newText, opts);
+    // IMPORTANT: use raw Telegram methods to avoid recursion
+    if (chatId && messageId) {
+      await ctx.telegram.editMessageText(chatId, messageId, undefined, newText, opts);
+    } else if (msg?.inline_message_id) {
+      await ctx.telegram.editMessageText(undefined, undefined, msg.inline_message_id, newText, opts);
+    } else {
+      // Fallback
+      await ctx.reply(newText, opts);
+    }
   } catch (e) {
     const desc = String(e?.description || e || "");
     if (desc.includes("message is not modified")) {
-      // ignore silently; try updating only markup if provided
       try {
-        const newMarkup = optsOrMarkup?.reply_markup ?? optsOrMarkup;
-        if (newMarkup) await ctx.editMessageReplyMarkup(newMarkup);
+        const msg = ctx.update?.callback_query?.message || {};
+        const chatId = msg?.chat?.id;
+        const messageId = msg?.message_id;
+        const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
+        if (desiredMarkup) {
+          if (chatId && messageId) {
+            await ctx.telegram.editMessageReplyMarkup(chatId, messageId, undefined, desiredMarkup);
+          } else if (msg?.inline_message_id) {
+            await ctx.telegram.editMessageReplyMarkup(undefined, undefined, msg.inline_message_id, desiredMarkup);
+          }
+        }
       } catch {}
     } else {
       console.error("editMessageText error:", e);
