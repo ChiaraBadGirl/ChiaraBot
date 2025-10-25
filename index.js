@@ -122,7 +122,7 @@ async function verifyPaypalSignature(headers, eventObj) {
 const ENABLE_TEST_SKU = process.env.ENABLE_TEST_SKU === 'true';
 
 const skuConfig = {
-    (ENABLE_TEST_SKU ? { TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 } } : {}),
+    ...(ENABLE_TEST_SKU ? { TEST_LIVE: { name: "Live Test (1 €)", price: "1.00", status: "TEST", days: 0 } } : {}),
 VIP_PASS:      { name: "VIP Pass",            price: "40.00", status: "VIP",            days: 30 },
   FULL_ACCESS:   { name: "Full Access (1M)",    price: "50.00", status: "FULL",           days: 30 },
   VIDEO_PACK_5:  { name: "Video Pack 5",        price: "50.00", status: "VIDEO_PACK_5",  days: 9999 },
