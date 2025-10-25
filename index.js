@@ -198,121 +198,66 @@ async function fulfillOrder({ telegramId, sku, amount, currency }) {
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
 
+
+
+
 // --- Helper: safely edit message without Telegram "message is not modified" 400 ---
-function __sameInline(a, b) {
-  try {
-    const A = (a && (a.inline_keyboard || a)) || null;
-    const B = (b && (b.inline_keyboard || b)) || null;
-    return JSON.stringify(A) === JSON.stringify(B);
-  } catch { return false; }
-}
-
-async // --- Helper: safely edit message without Telegram "message is not modified" 400 ---catch { return false; }
-}// --- Helper: safely edit message without Telegram "message is not modified" 400 ---
-function __sameInline(a, b) {
-  try {
-    const A = (a && (a.inline_keyboard || a)) || null;
-    const B = (b && (b.inline_keyboard || b)) || null;
-    return JSON.stringify(A) === JSON.stringify(B);
-  } catch { return false; }
-}
-
-async function safeEdit(ctx, newText, optsOrMarkup) {
-  try {
-    const msg = ctx.update?.callback_query?.message || {};
-    const chatId = msg?.chat?.id;
-    const messageId = msg?.message_id;
-    const oldText = msg?.text || msg?.caption || "";
-    const oldMarkup = msg?.reply_markup;
-    const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
-
-    if (oldText === newText && __sameInline(oldMarkup, desiredMarkup)) {
-      await ctx.answerCbQuery().catch(() => {});
-      return;
-    }
-
-    const base = { parse_mode: "Markdown" };
-    const opts = desiredMarkup ? { ...base, reply_markup: desiredMarkup } : base;
-
-    if (chatId && messageId) {
-      await ctx.telegram.editMessageText(chatId, messageId, undefined, newText, opts);
-    } else if (msg?.inline_message_id) {
-      await ctx.telegram.editMessageText(undefined, undefined, msg.inline_message_id, newText, opts);
-    } else {
-      await ctx.reply(newText, opts);
-    }
-  } catch (e) {
-    const desc = String(e?.description || e || "");
-    if (desc.includes("message is not modified")) {
+if (!globalThis.safeEdit) {
+  globalThis.safeEdit = async function safeEdit(ctx, newText, optsOrMarkup) {
+    const __sameInline = (a, b) => {
       try {
-        const msg = ctx.update?.callback_query?.message || {};
-        const chatId = msg?.chat?.id;
-        const messageId = msg?.message_id;
-        const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
-        if (desiredMarkup) {
-          if (chatId && messageId) {
-            await ctx.telegram.editMessageReplyMarkup(chatId, messageId, undefined, desiredMarkup);
-          } else if (msg?.inline_message_id) {
-            await ctx.telegram.editMessageReplyMarkup(undefined, undefined, msg.inline_message_id, desiredMarkup);
-          }
-        }
-      } catch {}
-    } else {
-      console.error("editMessageText error:", e);
-    }
-  } finally {
-    await ctx.answerCbQuery().catch(() => {});
-  }
-}
-;
-    const chatId = msg?.chat?.id;
-    const messageId = msg?.message_id;
-    const oldText = msg?.text || msg?.caption || "";
-    const oldMarkup = msg?.reply_markup;
-    const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
+        const A = (a && (a.inline_keyboard || a)) || null;
+        const B = (b && (b.inline_keyboard || b)) || null;
+        return JSON.stringify(A) === JSON.stringify(B);
+      } catch { return false; }
+    };
+    try {
+      const msg = ctx.update?.callback_query?.message || {};
+      const chatId = msg?.chat?.id;
+      const messageId = msg?.message_id;
+      const oldText = msg?.text || msg?.caption || "";
+      const oldMarkup = msg?.reply_markup;
+      const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
 
-    if (oldText === newText && __sameInline(oldMarkup, desiredMarkup)) {
+      if (oldText === newText && __sameInline(oldMarkup, desiredMarkup)) {
+        await ctx.answerCbQuery().catch(() => {});
+        return;
+      }
+
+      const base = { parse_mode: "Markdown" };
+      const opts = desiredMarkup ? { ...base, reply_markup: desiredMarkup } : base;
+
+      if (chatId && messageId) {
+        await ctx.telegram.editMessageText(chatId, messageId, undefined, newText, opts);
+      } else if (msg?.inline_message_id) {
+        await ctx.telegram.editMessageText(undefined, undefined, msg.inline_message_id, newText, opts);
+      } else {
+        await ctx.reply(newText, opts);
+      }
+    } catch (e) {
+      const desc = String(e?.description || e || "");
+      if (desc.includes("message is not modified")) {
+        try {
+          const msg = ctx.update?.callback_query?.message || {};
+          const chatId = msg?.chat?.id;
+          const messageId = msg?.message_id;
+          const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
+          if (desiredMarkup) {
+            if (chatId && messageId) {
+              await ctx.telegram.editMessageReplyMarkup(chatId, messageId, undefined, desiredMarkup);
+            } else if (msg?.inline_message_id) {
+              await ctx.telegram.editMessageReplyMarkup(undefined, undefined, msg.inline_message_id, desiredMarkup);
+            }
+          }
+        } catch {}
+      } else {
+        console.error("editMessageText error:", e);
+      }
+    } finally {
       await ctx.answerCbQuery().catch(() => {});
-      return;
     }
-
-    const base = { parse_mode: "Markdown" };
-    const opts = desiredMarkup ? { ...base, reply_markup: desiredMarkup } : base;
-
-    if (chatId && messageId) {
-      await ctx.telegram.editMessageText(chatId, messageId, undefined, newText, opts);
-    } else if (msg?.inline_message_id) {
-      await ctx.telegram.editMessageText(undefined, undefined, msg.inline_message_id, newText, opts);
-    } else {
-      await ctx.reply(newText, opts);
-    }
-  } catch (e) {
-    const desc = String(e?.description || e || "");
-    if (desc.includes("message is not modified")) {
-      try {
-        const msg = ctx.update?.callback_query?.message || {};
-        const chatId = msg?.chat?.id;
-        const messageId = msg?.message_id;
-        const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
-        if (desiredMarkup) {
-          if (chatId && messageId) {
-            await ctx.telegram.editMessageReplyMarkup(chatId, messageId, undefined, desiredMarkup);
-          } else if (msg?.inline_message_id) {
-            await ctx.telegram.editMessageReplyMarkup(undefined, undefined, msg.inline_message_id, desiredMarkup);
-          }
-        }
-      } catch {}
-    } else {
-      console.error("editMessageText error:", e);
-    }
-  } finally {
-    await ctx.answerCbQuery().catch(() => {});
-  }
+  };
 }
-
-
-
-
 
 // 🔹 Globaler Fehlerfänger mit User & Callback Info
 bot.catch((err, ctx) => {
@@ -363,6 +308,17 @@ async function activatePass(ctx, statusCode, durationDays, backCallback) {
 
 // Express App für Webhook
 const app = express();
+
+// --- Serve Apple Pay domain association file (.well-known) ---
+import path from "path";
+import fs from "fs";
+app.use("/.well-known", (req, res, next) => {
+  res.type("text/plain; charset=utf-8");
+  next();
+});
+app.use("/.well-known", express.static(path.join(process.cwd(), ".well-known")));
+
+
 app.use(bot.webhookCallback(`/webhook/${WEBHOOK_SECRET}`));
 
 // Webhook bei Telegram registrieren
