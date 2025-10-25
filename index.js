@@ -2147,28 +2147,32 @@ app.get("/checkout/:sku", async (req, res) => {
       var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
       setMsg("SDK geladen – HostedFields eligible: "+eligible);
       if (eligible) {
-        paypal.HostedFields.render({
-          fields: {
-            number:     { selector: "#card-number", placeholder: "Kartennummer" },
-            expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
-            cvv:        { selector: "#card-cvv", placeholder: "CVV" }
-          }
-        }).then(hf => {
-          document.getElementById("card-form").style.display = "";
-          document.getElementById("card-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            try {
-              const orderId = await createOrderOnServer();
-              await hf.submit({ contingencies: ["3D_SECURE"] });
-              await captureOnServer(orderId);
-              location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
-            } catch (err) {
-              setMsg("HF submit error: "+(err&&err.message||err));
-            }
-          });
-        }).catch(err => {
-          setMsg("HF render error: "+(err&&err.message||err));
-        });
+        
+paypal.HostedFields.render({
+  createOrder: () => createOrderOnServer(),
+  fields: {
+    number:     { selector: "#card-number", placeholder: "Kartennummer" },
+    expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
+    cvv:        { selector: "#card-cvv", placeholder: "CVV" }
+  }
+}).then(hf => {
+  document.getElementById("card-form").style.display = "";
+  document.getElementById("card-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const result = await hf.submit({ contingencies: ["3D_SECURE"] });
+      const orderId = (result && (result.orderId || result.orderID)) || null;
+      if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
+      await captureOnServer(orderId);
+      location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
+    } catch (err) {
+      setMsg("HF submit error: " + (err && err.message || err));
+    }
+  });
+}).catch(err => {
+  setMsg("HF render error: " + (err && err.message || err));
+});
+);
       }
     } catch(e){ setMsg("HF init error: "+e); }
     window.addEventListener("error", e => setMsg("JS-Fehler: "+e.message));
