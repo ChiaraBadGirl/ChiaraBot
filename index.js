@@ -1980,6 +1980,211 @@ app.post(
 
 // 🚫 Legacy-Alias neutralisieren – tut nichts mehr
 app.all("/paypal/webhook", (req, res) => res.sendStatus(204));
+// ==== PAYPAL ADVANCED CHECKOUT – SERVER APIS ====
+function getSkuInfo(sku) {
+  try {
+    if (typeof skuConfig === "object" && skuConfig[sku]) {
+      const item = skuConfig[sku];
+      return {
+        amount: String(item.amount || item.price || "1.00"),
+        currency: item.currency || "EUR",
+        description: item.description || item.name || sku,
+      };
+    }
+  } catch (e) {}
+  return { amount: "1.00", currency: "EUR", description: sku };
+}
+
+app.post("/api/paypal/order", express.json(), async (req, res) => {
+  try {
+    const { sku, tid } = req.body || {};
+    if (!sku || !tid) return res.status(400).json({ error: "missing sku/tid" });
+
+    const { amount, currency, description } = getSkuInfo(sku);
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: "CAPTURE",
+      purchase_units: [{
+        description,
+        custom_id: String(tid),
+        invoice_id: `${sku}:${tid}:${Date.now()}`,
+        amount: { currency_code: currency, value: amount },
+      }],
+    });
+
+    const order = await paypalClient().execute(request);
+    res.json({ id: order.result.id });
+  } catch (e) {
+    console.error("create order error:", e);
+    res.status(500).json({ error: "order_failed" });
+  }
+});
+
+app.post("/api/paypal/capture", express.json(), async (req, res) => {
+  try {
+    const { orderId } = req.body || {};
+    if (!orderId) return res.status(400).json({ error: "missing orderId" });
+
+    const capReq = new paypal.orders.OrdersCaptureRequest(orderId);
+    capReq.requestBody({});
+    const cap = await paypalClient().execute(capReq);
+
+    const unit = cap.result?.purchase_units?.[0];
+    const capture = unit?.payments?.captures?.[0];
+    const sku = unit?.invoice_id?.split(":")?.[0];
+    const tid = unit?.custom_id;
+    const amount = capture?.amount?.value;
+    const currency = capture?.amount?.currency_code;
+
+    if (sku && tid) {
+      await fulfillOrder({ telegramId: String(tid), sku, amount, currency });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("capture error:", e);
+    res.status(200).json({ ok: false });
+  }
+});
+// ==== END PAYPAL APIS ====
+
+
+
+// ==== CHECKOUT PAGE (Advanced/On-Site) ====
+app.get("/checkout/:sku", (req, res) => {
+  const { sku } = req.params;
+  const { tid = "" } = req.query; // Telegram-ID
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const currency = "EUR";
+
+  res.type("html").send(`<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Checkout</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
+  .row{margin:16px 0}
+  .field{border:1px solid #ddd;border-radius:8px;padding:12px}
+  .methods{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .hidden{display:none}
+  #payBtn{padding:12px 16px;border:0;border-radius:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<h2>Zahlung</h2>
+
+<div class="methods">
+  <div id="paypal-buttons"></div>
+  <div id="apple-pay" class="hidden">
+    <button id="apple-pay-button"> Pay</button>
+  </div>
+  <div id="google-pay" class="hidden">
+    <div id="google-pay-button"></div>
+  </div>
+</div>
+
+<h3>Kredit-/Debitkarte</h3>
+<div class="row"><div id="card-number" class="field"></div></div>
+<div class="row" style="display:flex;gap:12px">
+  <div id="card-expiration" class="field" style="flex:1"></div>
+  <div id="card-cvv" class="field" style="flex:1"></div>
+</div>
+<div class="row">
+  <button id="payBtn">Mit Karte zahlen</button>
+  <div id="msg"></div>
+</div>
+
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,hosted-fields,applepay,googlepay&intent=CAPTURE&currency=${currency}&enable-funding=card,applepay,googlepay"></script>
+<script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
+<script>
+  const SKU = ${"${JSON.stringify(sku)}"};
+  const TID = ${"${JSON.stringify(tid)}"};
+
+  async function createOrder() {
+    const r = await fetch("/api/paypal/order", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ sku: SKU, tid: TID })
+    });
+    const j = await r.json(); return j.id;
+  }
+  async function capture(orderId) {
+    await fetch("/api/paypal/capture", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ orderId })
+    });
+    document.getElementById("msg").textContent = "Zahlung erfolgreich ✅";
+  }
+
+  // PayPal Wallet Buttons
+  paypal.Buttons({
+    createOrder, onApprove: ({ orderID }) => capture(orderID)
+  }).render("#paypal-buttons");
+
+  // Hosted Fields (Karte)
+  if (paypal.HostedFields.isEligible()) {
+    paypal.HostedFields.render({
+      createOrder,
+      fields:{
+        number:{ selector:"#card-number", placeholder:"Kartennummer" },
+        expirationDate:{ selector:"#card-expiration", placeholder:"MM/YY" },
+        cvv:{ selector:"#card-cvv", placeholder:"CVV" }
+      }
+    }).then(hf=>{
+      document.getElementById("payBtn").onclick = async ()=>{
+        try{
+          const { orderId } = await hf.submit({}); // 3-D Secure läuft über SDK
+          await capture(orderId);
+        }catch(e){
+          document.getElementById("msg").textContent = "Kartenzahlung fehlgeschlagen";
+          console.error(e);
+        }
+      };
+    });
+  } else {
+    document.querySelector("h3").classList.add("hidden");
+    document.getElementById("payBtn").classList.add("hidden");
+  }
+
+  // Apple Pay
+  (async ()=>{
+    try{
+      const ap = paypal.Applepay();
+      const conf = await ap.config();
+      if(conf.isEligible){
+        document.getElementById("apple-pay").classList.remove("hidden");
+        document.getElementById("apple-pay-button").onclick = async ()=>{
+          const orderId = await createOrder();
+          const session = await ap.session({ orderId, countryCode: conf.countryCode });
+          await session.begin();
+        };
+      }
+    }catch{}
+  })();
+
+  // Google Pay
+  (async ()=>{
+    try{
+      const gp = paypal.Googlepay();
+      if(await gp.isEligible()){
+        document.getElementById("google-pay").classList.remove("hidden");
+        const btn = await gp.Buttons({
+          createOrder, onApprove: ({ orderID }) => capture(orderID)
+        });
+        btn.render("#google-pay-button");
+      }
+    }catch{}
+  })();
+</script>
+</body>
+</html>`);
+});
+// ==== END CHECKOUT PAGE ====
+
+
+
 
 
   app.listen(PORT, () => {
