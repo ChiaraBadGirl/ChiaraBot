@@ -207,7 +207,8 @@ function __sameInline(a, b) {
   } catch { return false; }
 }
 
-async // --- Helper: safely edit message without Telegram "message is not modified" 400 ---
+async // --- Helper: safely edit message without Telegram "message is not modified" 400 ---catch { return false; }
+}// --- Helper: safely edit message without Telegram "message is not modified" 400 ---
 function __sameInline(a, b) {
   try {
     const A = (a && (a.inline_keyboard || a)) || null;
@@ -219,6 +220,51 @@ function __sameInline(a, b) {
 async function safeEdit(ctx, newText, optsOrMarkup) {
   try {
     const msg = ctx.update?.callback_query?.message || {};
+    const chatId = msg?.chat?.id;
+    const messageId = msg?.message_id;
+    const oldText = msg?.text || msg?.caption || "";
+    const oldMarkup = msg?.reply_markup;
+    const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
+
+    if (oldText === newText && __sameInline(oldMarkup, desiredMarkup)) {
+      await ctx.answerCbQuery().catch(() => {});
+      return;
+    }
+
+    const base = { parse_mode: "Markdown" };
+    const opts = desiredMarkup ? { ...base, reply_markup: desiredMarkup } : base;
+
+    if (chatId && messageId) {
+      await ctx.telegram.editMessageText(chatId, messageId, undefined, newText, opts);
+    } else if (msg?.inline_message_id) {
+      await ctx.telegram.editMessageText(undefined, undefined, msg.inline_message_id, newText, opts);
+    } else {
+      await ctx.reply(newText, opts);
+    }
+  } catch (e) {
+    const desc = String(e?.description || e || "");
+    if (desc.includes("message is not modified")) {
+      try {
+        const msg = ctx.update?.callback_query?.message || {};
+        const chatId = msg?.chat?.id;
+        const messageId = msg?.message_id;
+        const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
+        if (desiredMarkup) {
+          if (chatId && messageId) {
+            await ctx.telegram.editMessageReplyMarkup(chatId, messageId, undefined, desiredMarkup);
+          } else if (msg?.inline_message_id) {
+            await ctx.telegram.editMessageReplyMarkup(undefined, undefined, msg.inline_message_id, desiredMarkup);
+          }
+        }
+      } catch {}
+    } else {
+      console.error("editMessageText error:", e);
+    }
+  } finally {
+    await ctx.answerCbQuery().catch(() => {});
+  }
+}
+;
     const chatId = msg?.chat?.id;
     const messageId = msg?.message_id;
     const oldText = msg?.text || msg?.caption || "";
