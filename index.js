@@ -239,12 +239,7 @@ async function activatePass(ctx, statusCode, durationDays, backCallback) {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-          [{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink' }],
-          [{ text: '📱 Apple/Google Pay', url: 'https://sumup.com/deinlink' }],
-          [{ text: '🔙 Zurück', callback_data: backCallback }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: 'https://sumup.com/deinlink' }], [{ text: '🔙 Zurück', callback_data: backCallback }]]
       }
     }
   );
@@ -563,12 +558,7 @@ async function sendHomeMenu(ctx) {
   const keyboard = {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '🧾 Menu', callback_data: 'go_menu' }],
-        [{ text: '‼️ Regeln', callback_data: 'go_regeln' }],
-        [{ text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }],
-        [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'go_info' }, { text: '🧾 Menu', callback_data: 'go_menu' }], [{ text: '‼️ Regeln', callback_data: 'go_regeln' }], [{ text: '📲 Mein Kanal', url: 'https://t.me/+XcpXcLb52vo0ZGNi' }, { text: '💬 Schreib mir', url: 'https://t.me/ChiaraBadGirl' }], [{ text: '👤 Mein Bereich', callback_data: 'mein_bereich' }]]
     }
   };
 
@@ -605,12 +595,7 @@ bot.action('go_info', async (ctx) => {
   await ctx.editMessageText('ℹ️ *Info-Menü:*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '👩‍💻 Wer bin ich', callback_data: 'info_wer' }],
-        [{ text: '🌐 Social Media', callback_data: 'info_social' }],
-        [{ text: '🔞 18+ Links', callback_data: 'info_links' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
+      inline_keyboard: [[{ text: '👩‍💻 Wer bin ich', callback_data: 'info_wer' }], [{ text: '🌐 Social Media', callback_data: 'info_social' }], [{ text: '🔞 18+ Links', callback_data: 'info_links' }], [{ text: '🔙 Zurück', callback_data: 'back_home' }]]
     }
   });
 });
@@ -629,9 +614,7 @@ bot.action('info_wer', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'go_info' }]
-        ]
+        inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'go_info' }]]
       }
     }
   );
@@ -642,14 +625,7 @@ bot.action('info_social', async (ctx) => {
   await ctx.editMessageText('🌐 *Social Media & Offizielle Seiten*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '🌍 Offizielle Website', url: 'https://www.chiarabadgirl.eu' }],
-        [{ text: '📸 Instagram', callback_data: 'instagram_menu' }],
-        [{ text: '🐦 Twitter', url: 'https://www.x.com/chiarabadgirl' }],
-        [{ text: '🎵 TikTok', url: 'https://www.tiktok.com/@biancanerini_offiziell' }],
-        [{ text: '📘 Facebook', url: 'https://www.facebook.com/share/1QLd19Djha/?mibextid=wwXIfr' }],
-        [{ text: '🔙 Zurück', callback_data: 'go_info' }]
-      ]
+      inline_keyboard: [[{ text: '🌍 Offizielle Website', url: 'https://www.chiarabadgirl.eu' }], [{ text: '📸 Instagram', callback_data: 'instagram_menu' }], [{ text: '🐦 Twitter', url: 'https://www.x.com/chiarabadgirl' }], [{ text: '🎵 TikTok', url: 'https://www.tiktok.com/@biancanerini_offiziell' }], [{ text: '📘 Facebook', url: 'https://www.facebook.com/share/1QLd19Djha/?mibextid=wwXIfr' }], [{ text: '🔙 Zurück', callback_data: 'go_info' }]]
     }
   });
 });
@@ -659,11 +635,7 @@ bot.action('instagram_menu', async (ctx) => {
   await ctx.editMessageText('📸 *Instagram Accounts*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '⭐ Hauptaccount', url: 'https://www.instagram.com/realchiaraoffiziell?igsh=Zmtuc3RwYWg4bzFi&utm_source=qr' }],
-        [{ text: '🛟 Backup Account', url: 'https://www.instagram.com/chiarabadgiirl_offiziell?igsh=MW1tcmw5dWU1c2k0dQ%3D%3D&utm_source=qr' }],
-        [{ text: '🔙 Zurück', callback_data: 'info_social' }]
-      ]
+      inline_keyboard: [[{ text: '⭐ Hauptaccount', url: 'https://www.instagram.com/realchiaraoffiziell?igsh=Zmtuc3RwYWg4bzFi&utm_source=qr' }], [{ text: '🛟 Backup Account', url: 'https://www.instagram.com/chiarabadgiirl_offiziell?igsh=MW1tcmw5dWU1c2k0dQ%3D%3D&utm_source=qr' }], [{ text: '🔙 Zurück', callback_data: 'info_social' }]]
     }
   });
 });
@@ -673,15 +645,7 @@ bot.action('info_links', async (ctx) => {
   await ctx.editMessageText('😈 *18+ Accounts & Premium Inhalte*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔥 OnlyFans Sub', url: 'https://www.onlyfans.com/chiarabadg' }],
-        [{ text: '👀 OnlyFans PPV', url: 'https://www.onlyfans.com/chiarabadgirl' }],
-        [{ text: '🥰 MYM', url: 'https://www.mym.fans/chiarabadgirl' }],
-        [{ text: '‼️ 4Based', url: 'https://4based.com/profile/chiarabadgirl' }],
-        [{ text: '🍀 Fanseven', url: 'https://www.fanseven.com/chiarabadgirl' }],
-        [{ text: '🫶🏻 Maloum', url: 'https://app.maloum.com/creator/chiarabadgirl' }],
-        [{ text: '🔙 Zurück', callback_data: 'go_info' }]
-      ]
+      inline_keyboard: [[{ text: '🔥 OnlyFans Sub', url: 'https://www.onlyfans.com/chiarabadg' }], [{ text: '👀 OnlyFans PPV', url: 'https://www.onlyfans.com/chiarabadgirl' }], [{ text: '🥰 MYM', url: 'https://www.mym.fans/chiarabadgirl' }], [{ text: '‼️ 4Based', url: 'https://4based.com/profile/chiarabadgirl' }], [{ text: '🍀 Fanseven', url: 'https://www.fanseven.com/chiarabadgirl' }], [{ text: '🫶🏻 Maloum', url: 'https://app.maloum.com/creator/chiarabadgirl' }], [{ text: '🔙 Zurück', callback_data: 'go_info' }]]
     }
   });
 });
@@ -691,12 +655,7 @@ bot.action('go_menu', async (ctx) => {
   await ctx.editMessageText('🧾 *Menu:*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '💰 Preisliste', callback_data: 'menu_preise' }],
-        [{ text: '🎁 Angebote', callback_data: 'menu_angebote' }],
-        [{ text: '💎 VIP Werden', callback_data: 'menu_vip' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
+      inline_keyboard: [[{ text: '💰 Preisliste', callback_data: 'menu_preise' }], [{ text: '🎁 Angebote', callback_data: 'menu_angebote' }], [{ text: '💎 VIP Werden', callback_data: 'menu_vip' }], [{ text: '🔙 Zurück', callback_data: 'back_home' }]]
     }
   });
 });
@@ -706,18 +665,7 @@ bot.action('menu_preise', async (ctx) => {
   await ctx.editMessageText('🧾 *Chiara Preisliste*\n\nWähle eine Kategorie aus:', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '🎟 Full Access & Pässe', callback_data: 'preise_fullaccess' }],
-        [{ text: '📦 Video Packs', callback_data: 'preise_videos' }],
-        [{ text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' }],
-        [{ text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }],
-        [{ text: '❤️ Girlfriend / Domina Pass', callback_data: 'preise_gf_domina' }],
-        [{ text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }],
-        [{ text: '🌟 Premium & VIP', callback_data: 'preise_vip' }],
-        [{ text: '📀 Custom Videos', callback_data: 'preise_custom' }],
-        [{ text: '🧦 Dirty Panties & Socks', callback_data: 'preise_panties' }],
-        [{ text: '🔙 Zurück', callback_data: 'go_menu' }]
-      ]
+      inline_keyboard: [[{ text: '🎟 Full Access & Pässe', callback_data: 'preise_fullaccess' }], [{ text: '📦 Video Packs', callback_data: 'preise_videos' }], [{ text: '💬 Sexchat Sessions', callback_data: 'preise_sexchat' }], [{ text: '👑 Daddy / Domina & More', callback_data: 'preise_daddy' }], [{ text: '❤️ Girlfriend / Domina Pass', callback_data: 'preise_gf_domina' }], [{ text: '📹 Livecam Sessions', callback_data: 'preise_livecam' }], [{ text: '🌟 Premium & VIP', callback_data: 'preise_vip' }], [{ text: '📀 Custom Videos', callback_data: 'preise_custom' }], [{ text: '🧦 Dirty Panties & Socks', callback_data: 'preise_panties' }], [{ text: '🔙 Zurück', callback_data: 'go_menu' }]]
     }
   });
 });
@@ -730,10 +678,7 @@ bot.action('preise_fullaccess', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔥 Full Access Pass (1 Monat)', callback_data: 'fullaccess_1m' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: '🔥 Full Access Pass (1 Monat)', callback_data: 'fullaccess_1m' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -745,12 +690,7 @@ bot.action('fullaccess_1m', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'info_fullaccess_1m' }],
-          [{ text: '💰 Preis', callback_data: 'preis_fullaccess_1m' }],
-          [{ text: '💳 Jetzt bezahlen', url: payUrl('FULL_ACCESS', ctx.from.id) }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_fullaccess' }]
-        ]
+        inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_fullaccess_1m' }], [{ text: '💰 Preis', callback_data: 'preis_fullaccess_1m' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('FULL_ACCESS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_fullaccess' }]]
       }
     }
   );
@@ -792,12 +732,7 @@ const paypalLink_FullAccess = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('FULL_ACCESS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'fullaccess_1m' }]]
       }
     }
   );
@@ -811,12 +746,7 @@ bot.action('preise_videos', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🎥 5 Videos', callback_data: 'videos_5' }],
-          [{ text: '🎥 10 Videos', callback_data: 'videos_10' }],
-          [{ text: '🎥 15 Videos', callback_data: 'videos_15' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: '🎥 5 Videos', callback_data: 'videos_5' }], [{ text: '🎥 10 Videos', callback_data: 'videos_10' }], [{ text: '🎥 15 Videos', callback_data: 'videos_15' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -827,12 +757,7 @@ bot.action('videos_5', async (ctx) => {
   await ctx.editMessageText('🎥 *5 Videos – Lifetime Access*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'info_videos_5' }],
-        [{ text: '💰 Preis', callback_data: 'preis_videos_5' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_5', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_videos_5' }], [{ text: '💰 Preis', callback_data: 'preis_videos_5' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_5', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]]
     }
   });
 });
@@ -857,12 +782,7 @@ const paypalLink_VideoPack5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('VIDEO_PACK_5', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'videos_5' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'videos_5' }]]
       }
     }
   );
@@ -873,12 +793,7 @@ bot.action('videos_10', async (ctx) => {
   await ctx.editMessageText('🎥 *10 Videos – Lifetime Access*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'info_videos_10' }],
-        [{ text: '💰 Preis', callback_data: 'preis_videos_10' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_10', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_videos_10' }], [{ text: '💰 Preis', callback_data: 'preis_videos_10' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_10', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]]
     }
   });
 });
@@ -903,12 +818,7 @@ const paypalLink_VideoPack10 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('VIDEO_PACK_10', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'videos_10' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'videos_10' }]]
       }
     }
   );
@@ -919,12 +829,7 @@ bot.action('videos_15', async (ctx) => {
   await ctx.editMessageText('🎥 *15 Videos – Lifetime Access*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'info_videos_15' }],
-        [{ text: '💰 Preis', callback_data: 'preis_videos_15' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_15', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_videos_15' }], [{ text: '💰 Preis', callback_data: 'preis_videos_15' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_15', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]]
     }
   });
 });
@@ -949,12 +854,7 @@ const paypalLink_VideoPack15 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('VIDEO_PACK_15', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'videos_15' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'videos_15' }]]
       }
     }
   );
@@ -968,12 +868,7 @@ bot.action('preise_sexchat', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ Info', callback_data: 'info_sexchat' }],
-          [{ text: '💰 Preis', callback_data: 'preis_sexchat' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_sexchat' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: 'ℹ Info', callback_data: 'info_sexchat' }], [{ text: '💰 Preis', callback_data: 'preis_sexchat' }], [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_sexchat' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -983,11 +878,7 @@ bot.action('pay_sexchat', async (ctx) => {
   await ctx.editMessageText('💳 *Wähle Zahlungsmethode:*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '💵 PayPal', url: 'https://paypal.com/deinlink' }],
-        [{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_sexchat' }]
-      ]
+      inline_keyboard: [[{ text: '💳 SumUp', url: 'https://sumup.com/deinlink' }], [{ text: '🔙 Zurück', callback_data: 'preise_sexchat' }]]
     }
   });
 });
@@ -1000,12 +891,7 @@ bot.action('preise_daddy', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🥉 Daddy Bronze', callback_data: 'preise_daddy_bronze' }],
-          [{ text: '🥈 Daddy Silber', callback_data: 'preise_daddy_silber' }],
-          [{ text: '🥇 Daddy Gold', callback_data: 'preise_daddy_gold' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: '🥉 Daddy Bronze', callback_data: 'preise_daddy_bronze' }], [{ text: '🥈 Daddy Silber', callback_data: 'preise_daddy_silber' }], [{ text: '🥇 Daddy Gold', callback_data: 'preise_daddy_gold' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -1018,12 +904,7 @@ bot.action('preise_daddy_bronze', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'info_daddy_bronze' }],
-          [{ text: '💰 Preis', callback_data: 'preis_daddy_bronze' }],
-          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_BRONZE', ctx.from.id) }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
-        ]
+        inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_daddy_bronze' }], [{ text: '💰 Preis', callback_data: 'preis_daddy_bronze' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_BRONZE', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]]
       }
     }
   );
@@ -1049,12 +930,7 @@ const paypalLink_DaddyBronze = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('DADDY_BRONZE', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'preise_daddy_bronze' }]]
       }
     }
   );
@@ -1067,12 +943,7 @@ bot.action('preise_daddy_silber', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'info_daddy_silber' }],
-          [{ text: '💰 Preis', callback_data: 'preis_daddy_silber' }],
-          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_SILBER', ctx.from.id) }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
-        ]
+        inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_daddy_silber' }], [{ text: '💰 Preis', callback_data: 'preis_daddy_silber' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_SILBER', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]]
       }
     }
   );
@@ -1098,12 +969,7 @@ const paypalLink_DaddySilber = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclic
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('DADDY_SILBER', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'preise_daddy_silber' }]]
       }
     }
   );
@@ -1116,12 +982,7 @@ bot.action('preise_daddy_gold', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ️ Info', callback_data: 'info_daddy_gold' }],
-          [{ text: '💰 Preis', callback_data: 'preis_daddy_gold' }],
-          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_GOLD', ctx.from.id) }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
-        ]
+        inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_daddy_gold' }], [{ text: '💰 Preis', callback_data: 'preis_daddy_gold' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_GOLD', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]]
       }
     }
   );
@@ -1147,12 +1008,7 @@ const paypalLink_DaddyGold = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick`
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('DADDY_GOLD', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'preise_daddy_gold' }]]
       }
     }
   );
@@ -1163,11 +1019,7 @@ bot.action('preise_gf_domina', async (ctx) => {
   await ctx.editMessageText('❤️ *Girlfriend & Domina Pässe*\n\n💖 Wähle deinen Pass:', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '💖 Girlfriend Pass', callback_data: 'preise_girlfriend' }],
-        [{ text: '🖤 Domina / Slave Pass', callback_data: 'preise_domina' }],
-        [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-      ]
+      inline_keyboard: [[{ text: '💖 Girlfriend Pass', callback_data: 'preise_girlfriend' }], [{ text: '🖤 Domina / Slave Pass', callback_data: 'preise_domina' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
     }
   });
 });
@@ -1177,12 +1029,7 @@ bot.action('preise_girlfriend', async (ctx) => {
   await ctx.editMessageText('💖 *Girlfriend Pass*\n\n💌 1 Woche Daily Chats (30 Min) + Full Access + intime Momente nur für dich.', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'info_girlfriend' }],
-        [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('GF_PASS', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'info_girlfriend' }], [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('GF_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]]
     }
   });
 });
@@ -1224,12 +1071,7 @@ const paypalLink_GirlfriendPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xc
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('GF_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'preise_girlfriend' }]]
       }
     }
   );
@@ -1240,12 +1082,7 @@ bot.action('preise_domina', async (ctx) => {
   await ctx.editMessageText('🖤 *Domina / Slave Pass*\n\n🔥 1 Woche Domina-Experience inkl. Sessions & exklusiver Betreuung.', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ Info', callback_data: 'info_domina' }],
-        [{ text: '💰 Preis', callback_data: 'preis_domina' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('DOMINA_PASS', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ Info', callback_data: 'info_domina' }], [{ text: '💰 Preis', callback_data: 'preis_domina' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('DOMINA_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]]
     }
   });
 });
@@ -1287,12 +1124,7 @@ const paypalLink_DominaPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('DOMINA_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_domina' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'preise_domina' }]]
       }
     }
   );
@@ -1305,12 +1137,7 @@ bot.action('preise_vip', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'ℹ Info', callback_data: 'info_vip' }],
-          [{ text: '💰 Preis', callback_data: 'preis_vip' }],
-          [{ text: '💳 Jetzt bezahlen', url: payUrl('VIP_PASS', ctx.from.id) }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: 'ℹ Info', callback_data: 'info_vip' }], [{ text: '💰 Preis', callback_data: 'preis_vip' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('VIP_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -1338,12 +1165,7 @@ const paypalLink_VIPPass = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('VIP_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'preise_vip' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'preise_vip' }]]
       }
     }
   );
@@ -1367,11 +1189,7 @@ bot.action('preise_custom', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🎥 3 Minuten', callback_data: 'custom_3' }],
-          [{ text: '🎥 5 Minuten', callback_data: 'custom_5' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: '🎥 3 Minuten', callback_data: 'custom_3' }], [{ text: '🎥 5 Minuten', callback_data: 'custom_5' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -1382,12 +1200,7 @@ bot.action('custom_3', async (ctx) => {
   await ctx.editMessageText('🎥 *3 Min Custom Video*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'custom3_info' }],
-        [{ text: '💰 Preis', callback_data: 'custom3_price' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM3_PASS', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'custom3_info' }], [{ text: '💰 Preis', callback_data: 'custom3_price' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM3_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]]
     }
   });
 });
@@ -1412,12 +1225,7 @@ const paypalLink_Custom3 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('CUSTOM3_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'custom_3' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'custom_3' }]]
       }
     }
   );
@@ -1428,12 +1236,7 @@ bot.action('custom_5', async (ctx) => {
   await ctx.editMessageText('🎥 *5 Min Custom Video*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'custom5_info' }],
-        [{ text: '💰 Preis', callback_data: 'custom5_price' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM5_PASS', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'custom5_info' }], [{ text: '💰 Preis', callback_data: 'custom5_price' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM5_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]]
     }
   });
 });
@@ -1458,12 +1261,7 @@ const paypalLink_Custom5 = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('CUSTOM5_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'custom_5' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'custom_5' }]]
       }
     }
   );
@@ -1477,11 +1275,7 @@ bot.action('preise_panties', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '👙 Panty', callback_data: 'panty_item' }],
-          [{ text: '🧦 Socks', callback_data: 'socks_item' }],
-          [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
-        ]
+        inline_keyboard: [[{ text: '👙 Panty', callback_data: 'panty_item' }], [{ text: '🧦 Socks', callback_data: 'socks_item' }], [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]]
       }
     }
   );
@@ -1492,12 +1286,7 @@ bot.action('panty_item', async (ctx) => {
   await ctx.editMessageText('👙 *Panty*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'panty_info' }],
-        [{ text: '💰 Preis', callback_data: 'panty_price' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('PANTY_PASS', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'panty_info' }], [{ text: '💰 Preis', callback_data: 'panty_price' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('PANTY_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]]
     }
   });
 });
@@ -1522,12 +1311,7 @@ const paypalLink_Panty = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('PANTY_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'panty_item' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'panty_item' }]]
       }
     }
   );
@@ -1538,12 +1322,7 @@ bot.action('socks_item', async (ctx) => {
   await ctx.editMessageText('🧦 *Socks*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Info', callback_data: 'socks_info' }],
-        [{ text: '💰 Preis', callback_data: 'socks_price' }],
-        [{ text: '💳 Jetzt bezahlen', url: payUrl('SOCKS_PASS', ctx.from.id) }],
-        [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
-      ]
+      inline_keyboard: [[{ text: 'ℹ️ Info', callback_data: 'socks_info' }], [{ text: '💰 Preis', callback_data: 'socks_price' }], [{ text: '💳 Jetzt bezahlen', url: payUrl('SOCKS_PASS', ctx.from.id) }], [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]]
     }
   });
 });
@@ -1568,12 +1347,7 @@ const paypalLink_Socks = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick` +
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '💵 PayPal', url: payUrl('SOCKS_PASS', telegramId) }],
-          [{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }],
-          [{ text: '📱 Apple Pay / Google Pay', url: sumupAppleGoogle }],
-          [{ text: '🔙 Zurück', callback_data: 'socks_item' }]
-        ]
+        inline_keyboard: [[{ text: '💳 Kredit-/Debitkarte', url: sumupKredit }], [{ text: '🔙 Zurück', callback_data: 'socks_item' }]]
       }
     }
   );
@@ -1584,12 +1358,7 @@ bot.action('go_regeln', async (ctx) => {
   await ctx.editMessageText('‼️ *ALLE REGELN:*', {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '📜 Was ist erlaubt', callback_data: 'regeln_erlaubt' }],
-        [{ text: '⏱️ Sessions', callback_data: 'regeln_sessions' }],
-        [{ text: '📷 Cam', callback_data: 'regeln_cam' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
+      inline_keyboard: [[{ text: '📜 Was ist erlaubt', callback_data: 'regeln_erlaubt' }], [{ text: '⏱️ Sessions', callback_data: 'regeln_sessions' }], [{ text: '📷 Cam', callback_data: 'regeln_cam' }], [{ text: '🔙 Zurück', callback_data: 'back_home' }]]
     }
   });
 });
@@ -1659,10 +1428,7 @@ bot.action('mein_bereich', async (ctx) => {
     {
       parse_mode: 'MarkdownV2',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🛒 Punkte einlösen', callback_data: 'punkte_einloesen' }],
-          [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-        ]
+        inline_keyboard: [[{ text: '🛒 Punkte einlösen', callback_data: 'punkte_einloesen' }], [{ text: '🔙 Zurück', callback_data: 'back_home' }]]
       }
     }
   );
@@ -1682,9 +1448,7 @@ bot.action('admin_stats', async (ctx) => {
   await ctx.editMessageText(`📊 *Gespeicherte User: ${data.length}*`, {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
-      ]
+      inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'admin_menu' }]]
     }
   });
 }); // ✅ ← Diese Klammer hatte vorher gefehlt!
@@ -1698,9 +1462,7 @@ bot.action('admin_broadcast_info', async (ctx) => {
     {
       parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔙 Zurück', callback_data: 'admin_menu' }]
-        ]
+        inline_keyboard: [[{ text: '🔙 Zurück', callback_data: 'admin_menu' }]]
       }
     }
   );
@@ -1713,11 +1475,7 @@ async function sendAdminMenu(ctx) {
   const keyboard = {
     parse_mode: 'Markdown',
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '📊 Statistik', callback_data: 'admin_stats' }],
-        [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }],
-        [{ text: '🔙 Zurück', callback_data: 'back_home' }]
-      ]
+      inline_keyboard: [[{ text: '📊 Statistik', callback_data: 'admin_stats' }], [{ text: '📢 Broadcast starten', callback_data: 'admin_broadcast_info' }], [{ text: '🔙 Zurück', callback_data: 'back_home' }]]
     }
   };
 
