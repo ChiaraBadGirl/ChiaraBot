@@ -2085,10 +2085,147 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 // ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
 app.get("/checkout/:sku", async (req, res) => {
-  try {
-    const sku = req.params.sku;
-    const tid = String(req.query.tid || "");
-    const cfg = skuConfig[sku];
+  const sku = req.params.sku;
+  const tid = String(req.query.tid || "").trim();
+  const cfg = (typeof skuConfig !== "undefined" ? skuConfig[sku] : undefined);
+
+  if (!cfg || !/^\d+$/.test(tid)) {
+    return res.status(400).send("❌ Ungültige Parameter.");
+  }
+
+  const sdkUrl =
+    "https://www.paypal.com/sdk/js" +
+    `?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}` +
+    `&currency=EUR` +
+    `&intent=capture` +
+    `&components=buttons` +
+    `&enable-funding=card` +
+    `&commit=true`;
+
+  res.type("html").send(`<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Checkout: ${cfg.name} – ${cfg.price} €</title>
+  <style>
+    :root { --bg:#0b1020; --card:#ffffff; --ink:#101216; --muted:#6b7280; --accent:#111827; }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      color:var(--ink);
+      background: radial-gradient(1200px 600px at 20% -10%, #3548ff22, transparent 60%),
+                  radial-gradient(1000px 600px at 110% 10%, #ff2a6b22, transparent 60%),
+                  linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+      min-height:100vh; padding:24px;
+    }
+    .wrap { max-width: 780px; margin: 0 auto; }
+    .brand {
+      display:flex; align-items:center; gap:12px; margin: 8px 0 18px;
+      font-weight: 800; font-size: clamp(20px, 4vw, 28px);
+    }
+    .logo {
+      width:36px; height:36px; border-radius:12px;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      box-shadow: 0 10px 25px #7c3aed33;
+    }
+    .card {
+      background: var(--card); border-radius:20px; padding:18px 18px 22px;
+      box-shadow: 0 10px 35px #02061722, 0 1px 0 #ffffffaa inset;
+      border: 1px solid #e5e7eb;
+    }
+    .title { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+    .title h1 { margin:0; font-size: 20px; font-weight: 800; letter-spacing:.2px; }
+    .price { font-size: 20px; font-weight: 900; }
+    .meta { margin:10px 2px 14px; color:var(--muted); font-size:14px; display:flex; gap:8px; align-items:center; }
+    #paypal-buttons, #card-button { margin-top: 12px; }
+    .err { margin-top: 12px; color: #b91c1c; font-weight:600; }
+    .footnote { margin-top:12px; font-size:12px; color:#9ca3af; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand"><div class="logo"></div> Bianca Utter</div>
+    <section class="card">
+      <div class="title">
+        <h1>${cfg.name}</h1>
+        <div class="price">${cfg.price} €</div>
+      </div>
+      <div class="meta">🔒 SSL-gesicherte Zahlung · Abgewickelt durch PayPal</div>
+
+      <!-- PayPal Buttons -->
+      <div id="paypal-buttons"></div>
+      <div id="card-button"></div>
+
+      <p id="err" class="err" hidden></p>
+      <div class="footnote">Mit Abschluss stimmst du unseren AGB & Widerrufsbedingungen zu.</div>
+    </section>
+  </main>
+
+  <!-- PayPal SDK (nur Buttons) -->
+  <script src="${sdkUrl}"></script>
+
+  <script>
+    (function () {
+      const sku   = ${"${JSON.stringify(sku)}"};
+      const tid   = ${"${JSON.stringify(tid)}"};
+      const price = ${"${JSON.stringify(cfg.price)}"};
+      const desc  = ${"${JSON.stringify(PAYPAL_DESC)}"};
+
+      function showError(msg, err) {
+        const el = document.getElementById('err');
+        el.textContent = msg || 'Etwas ist schiefgelaufen. Bitte Seite neu laden.';
+        el.hidden = false;
+        if (err) console.error('[PayPal] ', err);
+      }
+
+      function createOrder(data, actions) {
+        return actions.order.create({
+          intent: 'CAPTURE',
+          purchase_units: [{
+            reference_id: sku,
+            custom_id: tid,
+            description: desc,
+            amount: { currency_code: 'EUR', value: price }
+          }],
+          application_context: { user_action: 'PAY_NOW' }
+        });
+      }
+
+      function onApprove(data, actions) {
+        return actions.order.capture().then(function () {
+          window.location.href =
+            '/success?telegramId=' + encodeURIComponent(tid) +
+            '&productName=' + encodeURIComponent(sku) +
+            '&price=' + encodeURIComponent(price);
+        });
+      }
+
+      function onError(err) { showError('Zahlung konnte nicht gestartet werden.', err); }
+
+      try {
+        const ppBtn = paypal.Buttons({
+          style: { layout: 'horizontal', color: 'gold', height: 48, shape: 'pill' },
+          createOrder, onApprove, onError
+        });
+        if (ppBtn.isEligible()) ppBtn.render('#paypal-buttons');
+      } catch (e) { onError(e); }
+
+      try {
+        const cardBtn = paypal.Buttons({
+          fundingSource: paypal.FUNDING.CARD,
+          style: { layout: 'horizontal', color: 'black', height: 48, shape: 'pill', label: 'pay' },
+          createOrder, onApprove, onError
+        });
+        if (cardBtn.isEligible()) cardBtn.render('#card-button');
+      } catch (e) {
+        console.warn('Card button not eligible', e);
+      }
+    })();
+  </script>
+</body>
+</html>`);
+});const cfg = skuConfig[sku];
     if (!cfg || !/^\d+$/.test(tid)) return res.status(400).send("❌ Ungültige Parameter.");
     const clientToken = await generateClientToken();
     const clientId = PAYPAL_CLIENT_ID;
