@@ -2051,6 +2051,7 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 
 
+
 // ==== CHECKOUT PAGE (Advanced/On-Site) ====
 app.get("/checkout/:sku", (req, res) => {
   const { sku } = req.params;
@@ -2068,9 +2069,10 @@ app.get("/checkout/:sku", (req, res) => {
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
   .row{margin:16px 0}
   .field{border:1px solid #ddd;border-radius:8px;padding:12px}
-  .methods{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .methods{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  #paypal-buttons{min-height:48px;min-width:260px}
   .hidden{display:none}
-  #payBtn{padding:12px 16px;border:0;border-radius:8px;cursor:pointer}
+  #payBtn,#paypal-fallback{padding:12px 16px;border:0;border-radius:8px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -2078,6 +2080,7 @@ app.get("/checkout/:sku", (req, res) => {
 
 <div class="methods">
   <div id="paypal-buttons"></div>
+  <button id="paypal-fallback" class="hidden">Mit PayPal zahlen (Fallback)</button>
   <div id="apple-pay" class="hidden">
     <button id="apple-pay-button"> Pay</button>
   </div>
@@ -2097,7 +2100,7 @@ app.get("/checkout/:sku", (req, res) => {
   <div id="msg"></div>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,hosted-fields,applepay,googlepay&intent=CAPTURE&currency=${currency}&enable-funding=card,applepay,googlepay"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,hosted-fields,applepay,googlepay&intent=CAPTURE&currency=${currency}&enable-funding=paypal,card,applepay,googlepay"></script>
 <script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"};
@@ -2118,10 +2121,32 @@ app.get("/checkout/:sku", (req, res) => {
     document.getElementById("msg").textContent = "Zahlung erfolgreich ✅";
   }
 
-  // PayPal Wallet Buttons
-  paypal.Buttons({
-    createOrder, onApprove: ({ orderID }) => capture(orderID)
-  }).render("#paypal-buttons");
+  // PayPal Wallet Buttons (mit Fallback)
+  (function(){
+    const fallbackBtn = document.getElementById("paypal-fallback");
+    try{
+      paypal.Buttons({
+        createOrder,
+        onApprove: ({ orderID }) => capture(orderID),
+        onError: (err) => {
+          console.error("PayPal Buttons error:", err);
+          fallbackBtn.classList.remove("hidden");
+        }
+      }).render("#paypal-buttons").catch(err => {
+        console.error("Buttons render error:", err);
+        fallbackBtn.classList.remove("hidden");
+      });
+    }catch(e){
+      console.error("Buttons init error:", e);
+      fallbackBtn.classList.remove("hidden");
+    }
+    fallbackBtn.onclick = async () => {
+      try{
+        const id = await createOrder();
+        window.location.href = "https://www.paypal.com/checkoutnow?token=" + id;
+      }catch(e){ alert("PayPal-Fallback fehlgeschlagen"); console.error(e); }
+    };
+  })();
 
   // Hosted Fields (Karte)
   if (paypal.HostedFields.isEligible()) {
@@ -2182,6 +2207,7 @@ app.get("/checkout/:sku", (req, res) => {
 </html>`);
 });
 // ==== END CHECKOUT PAGE ====
+
 
 
 
