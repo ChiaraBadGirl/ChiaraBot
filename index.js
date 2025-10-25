@@ -2084,6 +2084,7 @@ app.post("/api/paypal/capture", express.json(), async (req, res) => {
 
 
 // ==== CHECKOUT PAGE (Smart Buttons: PayPal + Card + Apple/Google) ====
+
 app.get("/checkout/:sku", async (req, res) => {
   try {
     const sku = req.params.sku;
@@ -2093,6 +2094,17 @@ app.get("/checkout/:sku", async (req, res) => {
     const clientToken = await generateClientToken();
     const clientId = PAYPAL_CLIENT_ID;
     const brand = (process.env.PAYMENT_BRAND || "Checkout");
+
+    const imgHtml = process.env.PAYMENT_IMAGE_URL
+      ? '<img src="' + process.env.PAYMENT_IMAGE_URL + '" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;margin-right:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);" />'
+      : '';
+
+    const link = (url, label) => (url ? '<a href="' + url + '" style="color:inherit;text-decoration:none;opacity:.9">'+label+'</a>' : '');
+    const footerHtml = '<div style="margin-top:18px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)">' +
+      link(process.env.LEGAL_TERMS_URL, 'AGB') +
+      link(process.env.LEGAL_PRIVACY_URL, 'Datenschutz') +
+      link(process.env.LEGAL_IMPRESSUM_URL, 'Impressum') +
+      '</div>';
 
     res.type("html").send(`<!doctype html>
 <html lang="de">
@@ -2134,17 +2146,13 @@ app.get("/checkout/:sku", async (req, res) => {
       padding: clamp(16px, 3.5vw, 28px);
     }
     .wrap{max-width:720px;margin:0 auto}
-    .brand{
-      display:flex;align-items:center;gap:12px;margin-bottom:18px;
-    }
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
     .badge{
       width:36px;height:36px;border-radius:10px;
       background: linear-gradient(145deg, var(--accent), #4f46e5);
       box-shadow: 0 10px 26px var(--ring);
     }
-    .brand h1{
-      margin:0;font-size:clamp(22px, 3.8vw, 28px);font-weight:800;letter-spacing:.2px;
-    }
+    .brand h1{margin:0;font-size:clamp(22px, 3.8vw, 28px);font-weight:800;letter-spacing:.2px;}
     .card{
       background:var(--card-bg);
       border-radius:16px;
@@ -2152,10 +2160,8 @@ app.get("/checkout/:sku", async (req, res) => {
       padding:clamp(16px,3.6vw,28px);
       border:1px solid rgba(255,255,255,.06);
     }
-    .summary{
-      display:flex;justify-content:space-between;align-items:center;
-      margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed rgba(255,255,255,.12);
-    }
+    .summary{display:flex;justify-content:space-between;align-items:center;gap:12px;
+      margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed rgba(255,255,255,.12);}
     .summary .name{font-weight:700;font-size:clamp(18px,3.4vw,22px)}
     .summary .price{font-weight:800;font-size:clamp(18px,3.4vw,22px)}
     .payarea{margin-top:10px}
@@ -2180,7 +2186,7 @@ app.get("/checkout/:sku", async (req, res) => {
 
     <div class="card">
       <div class="summary">
-        ${process.env.PAYMENT_IMAGE_URL ? `<img src="${process.env.PAYMENT_IMAGE_URL}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;margin-right:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);" />` : ""}
+        ${imgHtml}
         <div class="name">${cfg.name}</div>
         <div class="price">${cfg.price} €</div>
       </div>
@@ -2201,11 +2207,7 @@ app.get("/checkout/:sku", async (req, res) => {
           <span>SSL-gesicherte Zahlung</span> ·
           <span>Abgewickelt durch PayPal</span>
         </div>
-      <div style="margin-top:18px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
-        ${process.env.LEGAL_TERMS_URL ? `<a href="${process.env.LEGAL_TERMS_URL}" style="color:inherit;text-decoration:none;opacity:.9">AGB</a>` : ""}
-        ${process.env.LEGAL_PRIVACY_URL ? `<a href="${process.env.LEGAL_PRIVACY_URL}" style="color:inherit;text-decoration:none;opacity:.9">Datenschutz</a>` : ""}
-        ${process.env.LEGAL_IMPRESSUM_URL ? `<a href="${process.env.LEGAL_IMPRESSUM_URL}" style="color:inherit;text-decoration:none;opacity:.9">Impressum</a>` : ""}
-      </div>
+        ${footerHtml}
       </div>
     </div>
   </div>
@@ -2235,7 +2237,6 @@ app.get("/checkout/:sku", async (req, res) => {
         const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
       }
 
-      // Wallet Buttons (immer)
       paypal.Buttons({
         createOrder: () => createOrderOnServer(),
         onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
@@ -2243,7 +2244,6 @@ app.get("/checkout/:sku", async (req, res) => {
         })
       }).render("#paypal-buttons");
 
-      // Hosted Fields (wenn eligible), sonst Card-Fallback
       const renderCardFallback = () => paypal.Buttons({
         fundingSource: paypal.FUNDING.CARD,
         createOrder: () => createOrderOnServer(),
@@ -2272,7 +2272,6 @@ app.get("/checkout/:sku", async (req, res) => {
                 await captureOnServer(orderId);
                 location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
               } catch (err) {
-                // Bei Fehlern -> Fallback-Card-Button
                 document.getElementById("card-form").style.display = "none";
                 renderCardFallback();
               }
@@ -2297,6 +2296,7 @@ app.get("/checkout/:sku", async (req, res) => {
     res.status(500).send("Interner Fehler (Checkout)");
   }
 });
+
   } catch (e) {
     console.error("checkout page error:", e);
     res.status(500).send("Interner Fehler (Checkout)");
