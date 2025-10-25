@@ -2092,72 +2092,152 @@ app.get("/checkout/:sku", async (req, res) => {
     if (!cfg || !/^\d+$/.test(tid)) return res.status(400).send("❌ Ungültige Parameter.");
     const clientToken = await generateClientToken();
     const clientId = PAYPAL_CLIENT_ID;
+    const brand = (process.env.PAYMENT_BRAND || "Checkout");
 
     res.type("html").send(`<!doctype html>
-<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Checkout: ${cfg.name} – ${cfg.price} €</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px}
-  #paypal-buttons{min-height:48px;margin:16px 0}
-  #card-form{display:none;margin-top:16px}
-  .row{margin:8px 0}
-</style>
-</head><body>
-  <h1>Checkout: ${cfg.name} – ${cfg.price} €</h1>
-  
-  
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>${brand}: ${cfg.name} – ${cfg.price} €</title>
+  <meta name="color-scheme" content="light dark">
+  <style>
+    :root{
+      --bg: #0b0c0f;
+      --card-bg: #12141a;
+      --text: #ffffff;
+      --muted: #98a2b3;
+      --accent: #7c5cff;
+      --ring: rgba(124,92,255,.25);
+    }
+    @media (prefers-color-scheme: light) {
+      :root{
+        --bg: #f6f7fb;
+        --card-bg: #ffffff;
+        --text: #0b0c0f;
+        --muted: #55627a;
+        --accent: #6f5aff;
+        --ring: rgba(124,92,255,.18);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1000px 600px at 80% -10%, rgba(124,92,255,.10), transparent 60%),
+        radial-gradient(800px 500px at -10% 10%, rgba(0,161,255,.10), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      padding: clamp(16px, 3.5vw, 28px);
+    }
+    .wrap{max-width:720px;margin:0 auto}
+    .brand{
+      display:flex;align-items:center;gap:12px;margin-bottom:18px;
+    }
+    .badge{
+      width:36px;height:36px;border-radius:10px;
+      background: linear-gradient(145deg, var(--accent), #4f46e5);
+      box-shadow: 0 10px 26px var(--ring);
+    }
+    .brand h1{
+      margin:0;font-size:clamp(22px, 3.8vw, 28px);font-weight:800;letter-spacing:.2px;
+    }
+    .card{
+      background:var(--card-bg);
+      border-radius:16px;
+      box-shadow:0 18px 40px -18px rgba(0,0,0,.4), 0 2px 6px -2px rgba(0,0,0,.25);
+      padding:clamp(16px,3.6vw,28px);
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .summary{
+      display:flex;justify-content:space-between;align-items:center;
+      margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed rgba(255,255,255,.12);
+    }
+    .summary .name{font-weight:700;font-size:clamp(18px,3.4vw,22px)}
+    .summary .price{font-weight:800;font-size:clamp(18px,3.4vw,22px)}
+    .payarea{margin-top:10px}
+    .pp-row{margin:12px 0}
+    .fineprint{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .lock{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-radius:3px;position:relative;transform:translateY(2px)}
+    .lock:before{content:"";position:absolute;left:2px;top:-7px;width:8px;height:6px;border:2px solid var(--muted);border-bottom:none;border-radius:8px 8px 0 0}
+    .hf{margin-top:8px}
+    .hf .row{background:rgba(0,0,0,.08);border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:10px;margin-top:10px}
+    @media (prefers-color-scheme: light){
+      .hf .row{background:#f4f6fb;border-color:#e8ecf4}
+      .card{border-color:#eef0f7;box-shadow:0 18px 36px -18px rgba(47,45,86,.25), 0 2px 8px -2px rgba(47,45,86,.08)}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="badge" aria-hidden="true"></div>
+      <h1>${brand}</h1>
+    </div>
 
-  <div id="paypal-buttons"></div>
-  <div id="paypal-card-fallback" style="margin-top:12px"></div>
-  <div id="paypal-card-fallback"></div>
+    <div class="card">
+      <div class="summary">
+        <div class="name">${cfg.name}</div>
+        <div class="price">${cfg.price} €</div>
+      </div>
 
-  <form id="card-form">
-    <div class="row" id="card-number"></div>
-    <div class="row" id="card-expiration"></div>
-    <div class="row" id="card-cvv"></div>
-    <button id="card-pay" type="submit">Mit Karte bezahlen</button>
-  </form>
+      <div class="payarea">
+        <div id="paypal-buttons" class="pp-row"></div>
+        <div id="paypal-card-fallback" class="pp-row"></div>
 
-  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk" onload="" onerror=""></script>
+        <form id="card-form" class="hf" style="display:none">
+          <div class="row" id="card-number"></div>
+          <div class="row" id="card-expiration"></div>
+          <div class="row" id="card-cvv"></div>
+          <button id="card-pay" type="submit" style="margin-top:12px;width:100%;height:44px;border:none;border-radius:10px;font-weight:700;background:linear-gradient(135deg,var(--accent),#4f46e5);color:#fff;box-shadow:0 10px 24px var(--ring);">Mit Karte bezahlen</button>
+        </form>
+
+        <div class="fineprint">
+          <span class="lock"></span>
+          <span>SSL-gesicherte Zahlung</span> ·
+          <span>Abgewickelt durch PayPal</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons,hosted-fields&intent=capture" data-client-token="${clientToken}" id="pp-sdk"></script>
   <script>
-  const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
-  function setMsg(m){}
+    const SKU=${JSON.stringify(sku)}, TID=${JSON.stringify(tid)};
 
-  async function waitForSDK(){
-    if (window.paypal && window.paypal.Buttons) return;
-    await new Promise(resolve => {
-      const i = setInterval(() => {
-        if (window.paypal && window.paypal.Buttons) { clearInterval(i); resolve(); }
-      }, 30);
-      setTimeout(() => { clearInterval(i); resolve(); }, 8000);
-    });
-  }
-
-  async function initCheckout(){
-    try { await waitForSDK(); } catch(e){}
-    if (!window.paypal) { setMsg("SDK nicht verfügbar"); return; }
-
-    async function createOrderOnServer() {
-      const r = await fetch("/api/paypal/order", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error||"create order failed"); return j.id;
-    }
-    async function captureOnServer(orderId) {
-      const r = await fetch("/api/paypal/capture", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID, orderId }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
+    async function waitForSDK(){
+      if (window.paypal && window.paypal.Buttons) return;
+      await new Promise(resolve => {
+        const i = setInterval(() => { if (window.paypal && window.paypal.Buttons) { clearInterval(i); resolve(); } }, 30);
+        setTimeout(() => { clearInterval(i); resolve(); }, 8000);
+      });
     }
 
-    try {
+    async function initCheckout(){
+      await waitForSDK();
+      if (!window.paypal) return;
+
+      async function createOrderOnServer() {
+        const r = await fetch("/api/paypal/order", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID }) });
+        const j = await r.json(); if (!r.ok) throw new Error(j.error||"create order failed"); return j.id;
+      }
+      async function captureOnServer(orderId) {
+        const r = await fetch("/api/paypal/capture", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({ sku: SKU, tid: TID, orderId }) });
+        const j = await r.json(); if (!r.ok) throw new Error(j.error||"capture failed"); return j;
+      }
+
+      // Wallet Buttons (immer)
       paypal.Buttons({
         createOrder: () => createOrderOnServer(),
         onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
           location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
         })
-      }).render("#paypal-buttons").catch(err => setMsg(""+err));
-    } catch(e){ setMsg(""+e); }
+      }).render("#paypal-buttons");
 
-    try {
-      var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
-      setMsg("SDK geladen – " + eligible);
+      // Hosted Fields (wenn eligible), sonst Card-Fallback
       const renderCardFallback = () => paypal.Buttons({
         fundingSource: paypal.FUNDING.CARD,
         createOrder: () => createOrderOnServer(),
@@ -2165,44 +2245,52 @@ app.get("/checkout/:sku", async (req, res) => {
           location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
         })
       }).render("#paypal-card-fallback");
-      if (eligible) {
-        paypal.HostedFields.render({
-          createOrder: () => createOrderOnServer(),
-          fields: {
-            number:     { selector: "#card-number", placeholder: "Kartennummer" },
-            expiration: { selector: "#card-expiration", placeholder: "MM/YY" },
-            cvv:        { selector: "#card-cvv", placeholder: "CVV" }
-          }
-        }).then(hf => {
-          document.getElementById("card-form").style.display = "";
-          document.getElementById("card-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            try {
-              const result = await hf.submit({ contingencies: ["3D_SECURE"] });
-              const orderId = (result && (result.orderId || result.orderID)) || null;
-              if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
-              await captureOnServer(orderId);
-              location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
-            } catch (err) {
-              setMsg("" + (err && err.message || err));
+
+      try {
+        if (paypal.HostedFields && paypal.HostedFields.isEligible()) {
+          paypal.HostedFields.render({
+            createOrder: () => createOrderOnServer(),
+            fields: {
+              number:         { selector: "#card-number", placeholder: "Kartennummer" },
+              expirationDate: { selector: "#card-expiration", placeholder: "MM/YY" },
+              cvv:            { selector: "#card-cvv", placeholder: "CVV" }
             }
+          }).then(hf => {
+            document.getElementById("card-form").style.display = "";
+            document.getElementById("card-form").addEventListener("submit", async (e) => {
+              e.preventDefault();
+              try {
+                const result = await hf.submit({ contingencies: ["3D_SECURE"] });
+                const orderId = (result && (result.orderId || result.orderID)) || null;
+                if (!orderId) throw new Error("No orderId returned from Hosted Fields submit");
+                await captureOnServer(orderId);
+                location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderId;
+              } catch (err) {
+                // Bei Fehlern -> Fallback-Card-Button
+                document.getElementById("card-form").style.display = "none";
+                renderCardFallback();
+              }
+            });
+          }).catch(() => {
+            renderCardFallback();
           });
-        }).catch(err => {
-          setMsg("Die Karteneingabe ist vorübergehend nicht verfügbar – zeige Karten‑Button. Details: " + (err && err.message || err) + " – zeige Karten-Button.");
+        } else {
           renderCardFallback();
-        });
-      }
-      else {
-        /* Hosted Fields ineligible – simply show card button fallback without message */
+        }
+      } catch(e) {
         renderCardFallback();
       }
-    } catch(e){ setMsg(""+e); }
-  }
+    }
 
-  initCheckout();
-  window.addEventListener("error", e => setMsg(""+e.message));
-</script>
-</body></html>`);
+    initCheckout();
+  </script>
+</body>
+</html>`);
+  } catch (e) {
+    console.error("checkout page error:", e);
+    res.status(500).send("Interner Fehler (Checkout)");
+  }
+});
   } catch (e) {
     console.error("checkout page error:", e);
     res.status(500).send("Interner Fehler (Checkout)");
