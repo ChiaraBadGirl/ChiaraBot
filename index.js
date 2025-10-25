@@ -748,7 +748,7 @@ bot.action('fullaccess_1m', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_fullaccess_1m' }],
           [{ text: '💰 Preis', callback_data: 'preis_fullaccess_1m' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_fullaccess_1m' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('FULL_ACCESS', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_fullaccess' }]
         ]
       }
@@ -830,7 +830,7 @@ bot.action('videos_5', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_videos_5' }],
         [{ text: '💰 Preis', callback_data: 'preis_videos_5' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos_5' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_5', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
       ]
     }
@@ -876,7 +876,7 @@ bot.action('videos_10', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_videos_10' }],
         [{ text: '💰 Preis', callback_data: 'preis_videos_10' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos_10' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_10', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
       ]
     }
@@ -922,7 +922,7 @@ bot.action('videos_15', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_videos_15' }],
         [{ text: '💰 Preis', callback_data: 'preis_videos_15' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_videos_15' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('VIDEO_PACK_15', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_videos' }]
       ]
     }
@@ -1021,7 +1021,7 @@ bot.action('preise_daddy_bronze', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_daddy_bronze' }],
           [{ text: '💰 Preis', callback_data: 'preis_daddy_bronze' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy_bronze' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_BRONZE', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
         ]
       }
@@ -1070,7 +1070,7 @@ bot.action('preise_daddy_silber', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_daddy_silber' }],
           [{ text: '💰 Preis', callback_data: 'preis_daddy_silber' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy_silber' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_SILBER', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
         ]
       }
@@ -1119,7 +1119,7 @@ bot.action('preise_daddy_gold', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ️ Info', callback_data: 'info_daddy_gold' }],
           [{ text: '💰 Preis', callback_data: 'preis_daddy_gold' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_daddy_gold' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('DADDY_GOLD', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'preise_daddy' }]
         ]
       }
@@ -1180,7 +1180,7 @@ bot.action('preise_girlfriend', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'info_girlfriend' }],
         [{ text: '💰 Preis', callback_data: 'preis_girlfriend' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_girlfriend' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('GF_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
       ]
     }
@@ -1243,7 +1243,7 @@ bot.action('preise_domina', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ Info', callback_data: 'info_domina' }],
         [{ text: '💰 Preis', callback_data: 'preis_domina' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_domina' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('DOMINA_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_gf_domina' }]
       ]
     }
@@ -1308,7 +1308,7 @@ bot.action('preise_vip', async (ctx) => {
         inline_keyboard: [
           [{ text: 'ℹ Info', callback_data: 'info_vip' }],
           [{ text: '💰 Preis', callback_data: 'preis_vip' }],
-          [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_vip' }],
+          [{ text: '💳 Jetzt bezahlen', url: payUrl('VIP_PASS', ctx.from.id) }],
           [{ text: '🔙 Zurück', callback_data: 'menu_preise' }]
         ]
       }
@@ -1385,7 +1385,7 @@ bot.action('custom_3', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'custom3_info' }],
         [{ text: '💰 Preis', callback_data: 'custom3_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom3' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM3_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
@@ -1431,7 +1431,7 @@ bot.action('custom_5', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'custom5_info' }],
         [{ text: '💰 Preis', callback_data: 'custom5_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_custom5' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('CUSTOM5_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_custom' }]
       ]
     }
@@ -1495,7 +1495,7 @@ bot.action('panty_item', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'panty_info' }],
         [{ text: '💰 Preis', callback_data: 'panty_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_panty' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('PANTY_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
@@ -1541,7 +1541,7 @@ bot.action('socks_item', async (ctx) => {
       inline_keyboard: [
         [{ text: 'ℹ️ Info', callback_data: 'socks_info' }],
         [{ text: '💰 Preis', callback_data: 'socks_price' }],
-        [{ text: '💳 Jetzt bezahlen', callback_data: 'pay_socks' }],
+        [{ text: '💳 Jetzt bezahlen', url: payUrl('SOCKS_PASS', ctx.from.id) }],
         [{ text: '🔙 Zurück', callback_data: 'preise_panties' }]
       ]
     }
