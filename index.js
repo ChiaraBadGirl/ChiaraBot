@@ -2108,6 +2108,7 @@ app.get("/checkout/:sku", async (req, res) => {
   <div id="sdk-url" style="font-size:12px;color:#888"></div>
 
   <div id="paypal-buttons"></div>
+  <div id="paypal-card-fallback" style="margin-top:12px"></div>
   <div id="paypal-card-fallback"></div>
 
   <form id="card-form">
@@ -2157,6 +2158,13 @@ app.get("/checkout/:sku", async (req, res) => {
     try {
       var eligible = paypal.HostedFields && paypal.HostedFields.isEligible();
       setMsg("SDK geladen – HostedFields eligible: " + eligible);
+      const renderCardFallback = () => paypal.Buttons({
+        fundingSource: paypal.FUNDING.CARD,
+        createOrder: () => createOrderOnServer(),
+        onApprove: ({ orderID }) => captureOnServer(orderID).then(() => {
+          location.href = "/paypal/return?sku="+encodeURIComponent(SKU)+"&tid="+encodeURIComponent(TID)+"&token="+orderID;
+        })
+      }).render("#paypal-card-fallback");
       if (eligible) {
         paypal.HostedFields.render({
           createOrder: () => createOrderOnServer(),
@@ -2180,8 +2188,12 @@ app.get("/checkout/:sku", async (req, res) => {
             }
           });
         }).catch(err => {
-          setMsg("HF render error: " + (err && err.message || err));
+          setMsg("HF render error: " + (err && err.message || err) + " – zeige Karten-Button.");
+          renderCardFallback();
         });
+      }
+      else {
+        renderCardFallback();
       }
     } catch(e){ setMsg("HF init error: "+e); }
   }
@@ -2210,6 +2222,7 @@ app.get("/pp-test/:sku?", (req, res) => {
 </head><body>
 <h2>PayPal Smart Buttons (Test)</h2>
 <div id="paypal-buttons"></div>
+  <div id="paypal-card-fallback" style="margin-top:12px"></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
 <script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card"></script>
 <script>
@@ -2377,6 +2390,7 @@ app.get("/pp-lite/:sku?", (req, res) => {
 </head><body>
 <h2>PayPal Buttons – Lite</h2>
 <div id="paypal-buttons"></div>
+  <div id="paypal-card-fallback" style="margin-top:12px"></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
 <script id="pp-sdk" src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card" onload="document.getElementById('msg').textContent='SDK geladen';" onerror="document.getElementById('msg').textContent='SDK load error'"></script>
 <script>
