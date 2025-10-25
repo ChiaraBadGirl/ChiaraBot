@@ -198,30 +198,24 @@ async function fulfillOrder({ telegramId, sku, amount, currency }) {
 // Bot erstellen
 const bot = new Telegraf(BOT_TOKEN);
 
-
-// 🔹 Globaler Fehlerfänger mit User & Callback Info
-bot.catch((err, ctx) => {
-  const user = ctx?.from?.username
-    ? `@${ctx.from.username}`
-    : ctx?.from?.id || "Unbekannt";
-  const action = ctx?.update?.callback_query?.data || "Keine Action";
-
-  console.error(
-    `❌ Fehler bei ${ctx.updateType} | User: ${user} | Action: ${action}\n`,
-    err
-  );
-});
-
-
-
 // --- Helper: safely edit message without Telegram "message is not modified" 400 ---
-function __sameMarkup(a, b) {
+function __sameInline(a, b) {
   try {
     const A = (a && (a.inline_keyboard || a)) || null;
     const B = (b && (b.inline_keyboard || b)) || null;
     return JSON.stringify(A) === JSON.stringify(B);
   } catch { return false; }
 }
+
+async // --- Helper: safely edit message without Telegram "message is not modified" 400 ---
+function __sameInline(a, b) {
+  try {
+    const A = (a && (a.inline_keyboard || a)) || null;
+    const B = (b && (b.inline_keyboard || b)) || null;
+    return JSON.stringify(A) === JSON.stringify(B);
+  } catch { return false; }
+}
+
 async function safeEdit(ctx, newText, optsOrMarkup) {
   try {
     const msg = ctx.update?.callback_query?.message || {};
@@ -231,16 +225,7 @@ async function safeEdit(ctx, newText, optsOrMarkup) {
     const oldMarkup = msg?.reply_markup;
     const desiredMarkup = (optsOrMarkup && (optsOrMarkup.reply_markup || optsOrMarkup)) || undefined;
 
-    // simple deep-compare of inline_keyboard arrays
-    const same = (a, b) => {
-      try {
-        const A = (a && (a.inline_keyboard || a)) || null;
-        const B = (b && (b.inline_keyboard || b)) || null;
-        return JSON.stringify(A) === JSON.stringify(B);
-      } catch { return false; }
-    };
-
-    if (oldText === newText && same(oldMarkup, desiredMarkup)) {
+    if (oldText === newText && __sameInline(oldMarkup, desiredMarkup)) {
       await ctx.answerCbQuery().catch(() => {});
       return;
     }
@@ -248,13 +233,11 @@ async function safeEdit(ctx, newText, optsOrMarkup) {
     const base = { parse_mode: "Markdown" };
     const opts = desiredMarkup ? { ...base, reply_markup: desiredMarkup } : base;
 
-    // IMPORTANT: use raw Telegram methods to avoid recursion
     if (chatId && messageId) {
       await ctx.telegram.editMessageText(chatId, messageId, undefined, newText, opts);
     } else if (msg?.inline_message_id) {
       await ctx.telegram.editMessageText(undefined, undefined, msg.inline_message_id, newText, opts);
     } else {
-      // Fallback
       await ctx.reply(newText, opts);
     }
   } catch (e) {
@@ -280,6 +263,23 @@ async function safeEdit(ctx, newText, optsOrMarkup) {
     await ctx.answerCbQuery().catch(() => {});
   }
 }
+
+
+
+
+
+// 🔹 Globaler Fehlerfänger mit User & Callback Info
+bot.catch((err, ctx) => {
+  const user = ctx?.from?.username
+    ? `@${ctx.from.username}`
+    : ctx?.from?.id || "Unbekannt";
+  const action = ctx?.update?.callback_query?.data || "Keine Action";
+
+  console.error(
+    `❌ Fehler bei ${ctx.updateType} | User: ${user} | Action: ${action}\n`,
+    err
+  );
+});
 
 // 🔹 Funktion hier platzieren:
 async function activatePass(ctx, statusCode, durationDays, backCallback) {
@@ -2063,6 +2063,26 @@ app.get("/checkout/:sku", async (req, res) => {
   } catch (e) { onError(e); }
 })();
 </script>
+
+<script>
+// -- Extra: render Apple Pay & Google Pay if eligible --
+(function () {
+  try {
+    if (!window.paypal || !paypal.FUNDING) return;
+    const funding = paypal.FUNDING;
+    const COMMON = { createOrder, onApprove, onError };
+    function renderIfEligible(fs, selector, extra) {
+      try {
+        const btn = paypal.Buttons(Object.assign({ fundingSource: fs }, COMMON, extra || {}));
+        if (btn.isEligible()) btn.render(selector);
+      } catch (_) {}
+    }
+    renderIfEligible(funding.APPLEPAY, '#applepay-container', { style: { label: 'pay', shape: 'rect' } });
+    renderIfEligible(funding.GOOGLEPAY, '#googlepay-container', { style: { label: 'pay', shape: 'rect' } });
+  } catch (e) { console.warn('Apple/Google Pay init skipped:', e); }
+})();
+</script>
+
 </body>
 </html>`);
 });
@@ -2081,9 +2101,11 @@ app.get("/pp-test/:sku?", (req, res) => {
 </head><body>
 <h2>PayPal Smart Buttons (Test)</h2>
 <div id="paypal-buttons"></div>
+<div id="applepay-container"></div>
+<div id="googlepay-container"></div>
   <div id="paypal-card-fallback" style="margin-top:12px"></div>
 <div id="msg" style="margin-top:12px;color:#555"></div>
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card&enable-funding=applepay&enable-funding=googlepay"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   async function createOrder(){ const r = await fetch("/api/paypal/order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sku:SKU,tid:TID})}); const j=await r.json(); return j.id; }
@@ -2132,7 +2154,7 @@ app.get("/checkout-smart/:sku", (req, res) => {
 <div id="msg" style="margin-top:12px;color:#555"></div>
 <div id="sdk-url" style="margin-top:6px;color:#888;font-size:12px"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&components=buttons&intent=capture&enable-funding=card&enable-funding=applepay&enable-funding=googlepay"></script>
 <script>
   const SKU = ${"${JSON.stringify(sku)}"}, TID = ${"${JSON.stringify(tid)}"};
   const dbg = (m)=>{ try{ document.getElementById("dbg").textContent += m + "\\n"; }catch(e){} };
@@ -2270,8 +2292,8 @@ app.get("/pp-lite/:sku?", (req, res) => {
 
 // Show the exact SDK URLs that pages will use
 app.get("/__pp-sdk-url", (req, res) => {
-  const liteUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true`;
-  const advUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true`;
+  const liteUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true`;&enable-funding=applepay&enable-funding=googlepay
+  const advUrl = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&components=buttons,hosted-fields&intent=capture&enable-funding=card&commit=true`;&enable-funding=applepay&enable-funding=googlepay
   res.type("html").send(`
     <pre>lite: ${liteUrl}</pre>
     <pre>advanced: ${advUrl}</pre>
